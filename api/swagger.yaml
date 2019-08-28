@@ -1,0 +1,853 @@
+openapi: 3.0.1
+info:
+  title: Trusted Device Services
+  description: 'Manage and Interact with F5 TMOS trusted devices'
+  contact:
+    email: support@f5.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+tags:
+- name: Trust Services
+  description: Management trusts between TMOS devices
+- name: Proxy Services
+  description: Proxy iControl REST requests or get trusted tokens for trusted TMOS devices
+paths:
+  /TrustedDevices:
+    get:
+      tags:
+      - Trust Services
+      summary: retrieve defined device trusts optionally matching filters
+      operationId: getTrusts
+      parameters:
+        - name: targetUUID
+          in: query
+          description: Filter output to the matching targetUUID
+          required: false
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: targetHost
+          in: query
+          description: Filter output to the matching targetHost
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: Retrieved Devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeclaredDevices'
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedDevicesController
+    put:
+      tags:
+      - Trust Services
+      summary: add devices to trust
+      operationId: addTrusts
+      requestBody:
+        description: Add declared devices to existing trusts
+        content:
+          application/json:            
+            schema:
+              type: object
+              properties:
+                devices:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateDevices'
+        required: true
+      responses:
+        202:
+          description: Declaration accepted
+          content:
+            application/json: {}
+        400:
+          description: Invalid device declaration
+          content:
+            application/json:
+              schema:
+                type: string
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'missing targetUsername'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedDevicesController
+    post:
+      tags:
+      - Trust Services
+      summary: declare device trusts
+      operationId: declareTrusts
+      requestBody:
+        description: Declare all trusts
+        content:
+          application/json:            
+            schema:
+              type: object
+              properties:
+                devices:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/CreateDevices'
+        required: true
+      responses:
+        202:
+          description: Declaration accepted
+          content:
+            application/json: {}
+        400:
+          description: Invalid device declaration
+          content:
+            application/json:
+              schema:
+                type: string
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'missing targetUsername'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedDevicesController
+    delete:
+      tags:
+      - Trust Services
+      summary: delete device from existing trusts matching filters
+      operationId: deleteTrust
+      parameters:
+        - name: targetUUID
+          in: query
+          description: Delete trust matching targetUUID
+          required: false
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: targetHost
+          in: query
+          description: Delete trust(S) matching targetHost
+          required: false
+          schema:
+            type: string
+        - name: targetPort
+          in: query
+          description: Delete trust matchin targetHost and targetPort
+          required: false
+          schema:
+            $ref: '#/components/schemas/tcpPort'
+      responses:
+        202:
+          description: Request accepted 
+          content:
+            application/json: {}
+        404:
+          description: No devices found
+          content:
+            application/json: {}
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalide targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    x-swagger-router-controller: TrustedDevicesController
+  /TrustedDevices/{targetUUID}:
+    get:
+      tags:
+      - Trust Services
+      summary: retrieve defined device trusts matching the targetUUID
+      operationId: getTrust
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+      responses:
+        200:
+          description: Retrieved Devices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  devices:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeclaredDevices'
+        404:
+          description: No devices found
+          content: {}
+        405:
+          description: Validation exception
+          content: {}
+        500:
+          description: System exception
+      x-swagger-router-controller: TrustedDevicesController
+    delete:
+      tags:
+      - Trust Services
+      summary: delete device from existing trusts matching the targetUUID
+      operationId: deleteTrustByUUID
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Delete trust matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+      responses:
+        202:
+          description: Request accepted 
+          content:
+            {}
+        404:
+          description: No devices found
+          content: {}
+        405:
+          description: Validation exception
+          content: {}
+        500:
+          description: System exception
+    x-swagger-router-controller: TrustedDevicesController
+  /TrustedProxy:
+    get:
+      tags:
+      - Proxy Services
+      summary: retrieve trust token for trusted TMOS devices
+      operationId: getTrustToken
+      parameters:
+        - name: targetUUID
+          in: query
+          description: Filter output to the matching targetUUID
+          required: false
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: targetHost
+          in: query
+          description: Filter output to the matching targetHost
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: Retrieved Tokens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceToken'
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    delete:
+      tags:
+      - Proxy Services
+      summary: delete all cached tokens for trusted TMOS devices
+      operationId: flushTokenCache
+      responses:
+        200:
+          description: Token Cache Flushed
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    x-swagger-router-controller: TrustedProxyController
+  /TrustedProxy/{targetUUID}:
+    get:
+      tags:
+      - Proxy Services
+      summary: retrieve trust token for trusted TMOS devices
+      operationId: getTrustTokenByUUID
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+      responses:
+        200:
+          description: Retrieved Token
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DeviceToken'
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    delete:
+      tags:
+      - Proxy Services
+      summary: delete cached token for a TMOS devices
+      operationId: flushTokenCacheByUUID
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+      responses:
+        200:
+          description: Flushed Token
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    x-swagger-router-controller: TrustedProxyController
+  /TrustedProxy/proxy/{targetUUID}/{iControlRESTPath}:
+    get:
+      tags:
+      - Proxy Services
+      summary: proxy a GET iControl REST API request to a trusted Host
+      operationId: getiControlRESTProxy
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: iControlRESTPath
+          in: path
+          description: The iControl REST API path on the remote trusted device
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: iControl REST API response
+          content:
+            application/json: {}
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedProxyController
+    patch:
+      tags:
+      - Proxy Services
+      summary: proxy a PATCH iControl REST API request to a trusted Host
+      operationId: patchiControlRESTProxy
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: iControlRESTPath
+          in: path
+          description: The iControl REST API path on the remote trusted device
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: the iControl REST request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SampleRequestBody'
+      responses:
+        200:
+          description: iControl REST API response
+          content:
+            application/json: {}
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedProxyController
+    post:
+      tags:
+      - Proxy Services
+      summary: proxy an iControl REST API request to a trusted Host
+      operationId: postiControlRESTProxy
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: iControlRESTPath
+          in: path
+          description: The iControl REST API path on the remote trusted device
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: the iControl REST request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SampleRequestBody'
+      responses:
+        200:
+          description: iControl REST API response
+          content:
+            application/json: {}
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedProxyController
+    put:
+      tags:
+      - Proxy Services
+      summary: proxy an iControl REST API request to a trusted Host
+      operationId: putiControlRESTProxy
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: iControlRESTPath
+          in: path
+          description: The iControl REST API path on the remote trusted device
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: the iControl REST request body
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SampleRequestBody'
+      responses:
+        200:
+          description: iControl REST API response
+          content:
+            application/json: {}
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: TrustedProxyController
+    delete:
+      tags:
+      - Proxy Services
+      summary: proxy an iControl REST API request to a trusted Host
+      operationId: deleteiControlRESTProxy
+      parameters:
+        - name: targetUUID
+          in: path
+          description: Filter output to the matching targetUUID
+          required: true
+          schema:
+            $ref: '#/components/schemas/uuid'
+        - name: iControlRESTPath
+          in: path
+          description: The iControl REST API path on the remote trusted device
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: iControl REST API response
+          content:
+            application/json: {}
+        404:
+          description: No devices found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'trusted devices not found'
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid targetUUID'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    x-swagger-router-controller: TrustedProxyController
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+    BearerAuth:
+      type: http
+      scheme: bearer
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    CreateDevices:
+      type: object
+      required:
+        - targetHost
+        - targetPort
+        - targetUsername
+        - targetPassphrase
+      properties:
+        targetHost:
+          description: The trusted devices targetHost definition
+          type: string
+        targetPort:
+          $ref: '#/components/schemas/tcpPort'
+        targetUsername:
+          description: Username with Administrator role on the targetHost
+          type: string
+        targetPassphrase:
+          description: Password for the targetUser
+          type: string
+      example:
+        targetHost: 172.13.1.103
+        targetPort: 443
+        targetUsername: admin
+        targetPassphrase: admin
+    DeclaredDevices:
+      type: object
+      properties:
+        targetUUID:
+          $ref: '#/components/schemas/uuid'
+        targetHost:
+          description: The trusted devices targetHost definition
+          type: string
+        targetPort:
+          $ref: '#/components/schemas/tcpPort'
+        state:
+          description: Current trust establishement state
+          type: string
+        targetHostname:
+          description: The hostname of the trusted device
+          type: string
+        targetVersion:
+          description: The TMOS version of the trusted device
+          type: string
+        targetRESTVersion:
+          description: The iControl REST version installed on the trusted device
+          type: string
+        available:
+          description: If the device trust is currently available
+          type: boolean
+      example:
+        targetUUID: 7390b3b8-7682-4554-83e5-764e4f26703c
+        targetHost: 172.13.1.103
+        targetPort: 443
+        state: ACTIVE
+        targetHostname: bigip1.openstack.local
+        targetVersion: 13.1.1
+        targetRESTVersion: 13.1.1-0.0.4
+        available: true
+    DeviceToken:
+      type: object
+      properties:
+        queryParameter:
+          description: query variables to append to direct device queries as a trust token
+          type: string
+        timestamp:
+          description: Unix timestamp for this request. Tokens are good for 10 minutes only.
+          type: integer
+        targetUUID:
+          $ref: '#/components/schemas/uuid'
+        targetHost:
+          description: The trusted devices targetHost definition
+          type: string
+        targetPort:
+          $ref: '#/components/schemas/tcpPort'
+      example:
+        queryParameter: em_server_ip=1.1.1.104&em_server_auth_token=32W8%2FNw2mGHRDiqIbLbVblMy3L%2FT4oMI1LvEKQK4T8s8c9qYntQjZ47peLgT4H0l6ShubKNf1ubRkzV%2F3r9yCJAp68FlCtH0HSKT%2FwukWCSvWSUU1oEdSx0gRgUUUOkDjVDer1%2BOit8MRE8L4Nh5ZoUsPfNxgEBSoFdg0VvJ5ycEJhjKd0YXfD0R%2B6Qk%2FhPHpYmXyHdwC0bRvl0%2FlBn2QvQkvyRZGLiL3r0cOemLRKFsCcLTSpQlUUM%2BhcbXuwI%2B9%2FVMv5XUnY3%2FpxfUIS7O8k%2FWDVGm2r%2FKyWI2lNlHqHbkN5owk5FW7AXBArDI0OOLvvqEfg94DkCpZF2RLwS7xQ%3D%3D
+        timestamp: 1546102061136,
+        targetUUID: 7390b3b8-7682-4554-83e5-764e4f26703c
+        targetHost: 172.13.1.103
+        targetPort: 443
+    SampleRequestBody:
+      type: object
+      additionalProperties: true
+      example:
+       {}
+    uuid:
+      type: string
+      description: UUID4 Id string
+      pattern: '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    tcpPort:
+      type: integer
+      description: TCP port number
+      minimum: 1
+      maximum: 65535
