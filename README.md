@@ -27,3 +27,6 @@ To view the Swagger UI interface:
 ```bash
 open http://localhost:3000/TrustedDevicesUI
 ```
+
+![TrustedDevicesSwaggerUI](./resources/TrustedDevicesSwaggerApp.png)
+
