@@ -2,8 +2,7 @@
     "routes": [
         {
             "match": {
-                "sheme": "https",
-                "uri": "/TrustedDevices"
+                "uri": "/TrustedDevices*"
             },
             "action": {
                 "pass": "applications/icontrol_trusted_devies"
@@ -11,8 +10,7 @@
         },
         {
             "match": {
-                "sheme": "https",
-                "uri": "/TrustedDevicesUI"
+                "uri": "/TrustedDevicesUI*"
             },
             "action": {
                 "pass": "applications/icontrol_trusted_devies"
@@ -20,15 +18,13 @@
         },
         {
             "match": {
-                "sheme": "https",
-                "uri": "/TrustedProxy"
+                "uri": "/TrustedProxy*"
             },
             "action": {
                 "pass": "applications/icontrol_trusted_devies"
             }
         }
     ],
-    
     "applications": {
         "icontrol_trusted_devices": {
             "type": "external",

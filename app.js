@@ -14,7 +14,7 @@ const oas3Tools = require('oas3-tools');
 const serveStatic = require('serve-static');
 const pathToSwaggerUi = require('swagger-ui-dist').absolutePath();
 const jsyaml = require('js-yaml');
-const serverPort = process.env.PORT || 3000;
+const serverPort = process.env.PORT || 3100;
 
 // swaggerRouter configuration
 var options = {

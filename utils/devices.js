@@ -72,7 +72,7 @@ const getTrustedDevice = (target) => {
                             targetHost: device.targetHost,
                             targetPort: device.targetPort,
                             teagetUUID: device.targetUUID
-                        }; 
+                        };
                         resolve(device);
                     }
                 });
@@ -98,20 +98,20 @@ const resolveTargetFromUUID = (targetUUID) => {
             resolve(targetCache[targetUUID]);
         } else {
             getTrustedDevice(targetUUID)
-               .then( (device) => {
-                   if(device) {
-                       resolve(device);
-                   } else {
-                       const error = new Error('device not found');
-                       device.statusCode = 404;
-                       device.message = 'device not found';
-                       reject(error);
-                   }
-               })
-               .catch((error) => {
-                   reject(error);
-               });
-        }    
+                .then((device) => {
+                    if (device) {
+                        resolve(device);
+                    } else {
+                        const error = new Error('device not found');
+                        device.statusCode = 404;
+                        device.message = 'device not found';
+                        reject(error);
+                    }
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        }
     });
 };
 
@@ -342,12 +342,12 @@ const flushTokenCache = (targetHost) => {
                 // targetHost.
                 const needToDelete = [];
                 Object.keys(targetCache).forEach((targetUUID) => {
-                    if(targetCache[targetUUID].targetHost == targetHost) {
+                    if (targetCache[targetUUID].targetHost == targetHost) {
                         needToDelete.push(targetUUID);
                     }
                 });
                 needToDelete.forEach((targetUUID) => {
-                    delete(targetCache[targetUUID]);
+                    delete (targetCache[targetUUID]);
                 });
                 resolve();
             }
@@ -436,7 +436,7 @@ const deleteDevice = (device) => {
     return new Promise((resolve, reject) => {
         let foundDeviceGroup = '';
         logger.debug(`${LOG_PRE} - deleting targetUUID: ${device.targetUUID} from cache`);
-        delete(targetCache[device.targetUUID]);
+        delete (targetCache[device.targetUUID]);
         _findDeviceGroupWithDevice(device)
             .then((deviceGroup) => {
                 foundDeviceGroup = deviceGroup;
@@ -569,13 +569,37 @@ const proxyRequest = (targetUUID, path, client_req, client_res) => {
             const proxy = https.request(options, (res) => {
                 client_res.writeHead(res.statusCode, res.headers);
                 logger.debug(`${LOG_PRE} - proxy request taget device ${targetUUID} - ${res.statusCode} - ${path}`);
-                res.pipe(client_res, {
-                    end: true
+                res.on('data', (seg) => {
+                    client_res.write(seg);
                 });
+                res.on('end', () => {
+                    client_res.end();
+                });
+                /**
+                 * unit-http IncomingMessage object won't let you pipe
+                 * the streams together
+                 * res.pipe(client_res, {
+                 *    end: true
+                 * });
+                */
             });
-            client_req.pipe(proxy, {
-                end: true
+            client_req.on('data', (seg) => {
+                proxy.write(seg);
             });
+            client_req.on('end', () => {
+                proxy.end();
+            });
+            /**
+             * unit-http IncomingMessage object won't let you pipe
+             * the streams together
+             * client_req.pipe(proxy, {
+             *   end: true
+             * });
+            */
+            /** There is no 'end' event firing for client_req without a body */
+            if (!client_req.headers.hasOwnProperty('content-length')) {
+                proxy.end();
+            }
         })
         .catch((error) => {
             if (!foundDevice) {

@@ -26,7 +26,7 @@ module.exports.getTrustTokenByUUID = function getTrustToken(req, res, next) {
 module.exports.getTrustToken = function getTrustTokens(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
   const targetHost = req.swagger.params.targetHost.value;
-  logger.debug(`${LOG_PRE} - getTrustTokens called - targetUUID: ${targetUUID}, targetHost: ${targetHost}`);  
+  logger.debug(`${LOG_PRE} - getTrustTokens called - targetUUID: ${targetUUID}, targetHost: ${targetHost}`);
   TrustedProxyServices.getTrustToken(targetUUID, targetHost)
     .then(function (response) {
       logger.debug(`${LOG_PRE} - getTrustTokens returned`);
@@ -71,34 +71,34 @@ module.exports.flushTokenCacheByUUID = function flushTokenCache(req, res, next) 
 module.exports.getiControlRESTProxy = function getiControlRESTProxy(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
   const iControlRESTPath = req.swagger.params.iControlRESTPath.value;
-  logger.debug(`${LOG_PRE} - getiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);  
+  logger.debug(`${LOG_PRE} - getiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);
   TrustedProxyServices.getiControlRESTProxy(targetUUID, iControlRESTPath, req, res);
 };
 
 module.exports.deleteiControlRESTProxy = function deleteiControlRESTProxy(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
   const iControlRESTPath = req.swagger.params.iControlRESTPath.value;
-  logger.debug(`${LOG_PRE} - deleteiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);  
+  logger.debug(`${LOG_PRE} - deleteiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);
   TrustedProxyServices.deleteiControlRESTProxy(targetUUID, iControlRESTPath, req, res);
 };
 
 module.exports.patchiControlRESTProxy = function patchiControlRESTProxy(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
   const iControlRESTPath = req.swagger.params.iControlRESTPath.value;
-  logger.debug(`${LOG_PRE} - patchiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);  
-  TrustedProxyServices.patchiControlRESTProxy(targetUUID, iControlRESTPath.req.res);
+  logger.debug(`${LOG_PRE} - patchiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);
+  TrustedProxyServices.patchiControlRESTProxy(targetUUID, iControlRESTPath, req, res);
 };
 
 module.exports.postiControlRESTProxy = function postiControlRESTProxy(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
   const iControlRESTPath = req.swagger.params.iControlRESTPath.value;
-  logger.debug(`${LOG_PRE} - postiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);  
-  TrustedProxyServices.postiControlRESTProxy(targetUUID, iControlRESTPath.req.res);
+  logger.debug(`${LOG_PRE} - postiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);
+  TrustedProxyServices.postiControlRESTProxy(targetUUID, iControlRESTPath, req, res);
 };
 
 module.exports.putiControlRESTProxy = function putiControlRESTProxy(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
   const iControlRESTPath = req.swagger.params.iControlRESTPath.value;
-  logger.debug(`${LOG_PRE} - putiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);  
-  TrustedProxyServices.putiControlRESTProxy(targetUUID, iControlRESTPath.req, res);
+  logger.debug(`${LOG_PRE} - putiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);
+  TrustedProxyServices.putiControlRESTProxy(targetUUID, iControlRESTPath, req, res);
 };

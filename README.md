@@ -1,6 +1,7 @@
 # Trusted Devices Services - Swagger Edition
 
 ## Overview
+
 This is a nodejs based application which expects to be co-resident with `restjavad` such that it can create device trusts and proxy trusted requests.
 
 The application provides three URI namespaces:
@@ -14,14 +15,15 @@ This application was written 'schema first'. The OpenAPI schema for this applica
 How is this different than the `f5-api-services-gateway` iControl LX based extension for `TrustedDevices` and `TrustedProxy`? It contains zero iControl LX code. It uses direct nodejs `http` and `https` module queries. It also does not mangle your HTTP requests headers 'automagically' the way the iControl LX framework does.
 
 ### Running the server
+
 To run the server, run:
 
-```
+```bash
 npm start
 ```
 
 To view the Swagger UI interface:
 
-```
+```bash
 open http://localhost:3000/TrustedDevicesUI
 ```
