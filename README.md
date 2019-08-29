@@ -1,4 +1,4 @@
-# Trusted Devices Services - Swagger Edition
+# Trusted Devices Service - Swagger Edition
 
 [See me published into NGINX Unit runnng in a docker container! - f5-icontrol-gateway](https://cloud.docker.com/u/jgruberf5/repository/docker/jgruberf5/f5-icontrol-gateway)
 
