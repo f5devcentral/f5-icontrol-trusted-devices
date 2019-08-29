@@ -1,0 +1,40 @@
+{
+    "routes": [
+        {
+            "match": {
+                "sheme": "https",
+                "uri": "/TrustedDevices"
+            },
+            "action": {
+                "pass": "applications/icontrol_trusted_devies"
+            }
+        },
+        {
+            "match": {
+                "sheme": "https",
+                "uri": "/TrustedDevicesUI"
+            },
+            "action": {
+                "pass": "applications/icontrol_trusted_devies"
+            }
+        },
+        {
+            "match": {
+                "sheme": "https",
+                "uri": "/TrustedProxy"
+            },
+            "action": {
+                "pass": "applications/icontrol_trusted_devies"
+            }
+        }
+    ],
+    
+    "applications": {
+        "icontrol_trusted_devices": {
+            "type": "external",
+            "working_directory": "/var/lib/f5-icontrol-trusted-devices",
+            "executable": "unitapp.js"
+        }
+    }
+
+}

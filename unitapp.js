@@ -1,6 +1,17 @@
+#!/usr/bin/env node
+
 /* jshint esversion: 6 */
 /* jshint node: true */
 'use strict';
+
+const {
+  createServer,
+  IncomingMessage,
+  ServerResponse,
+} = require('unit-http');
+
+require('http').ServerResponse = ServerResponse;
+require('http').IncomingMessage = IncomingMessage;
 
 const logger = require('./utils/logger');
 
@@ -72,16 +83,14 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   app.use(`${APP_URI_PREFIX}/docs`, serveStatic(pathToSwaggerUi, { 'index': ['index.html'] }));
 
   // Create a HTTP redirect from /docs to our patched index.html
-  app.use(`${APP_URI_PREFIX}/`, (req, res) => {
+  app.use(`${APP_URI_PREFIX}/docs/`, (req, res) => {
     res.setHeader('Location', `${APP_URI_PREFIX}/docs/index.html`);
     res.writeHead(302, 'redirecting to swaggerui');
     res.end();
   });
 
   // Start the server
-  http.createServer(app).listen(serverPort, function () {
-    logger.info(`Your server is listening on port ${serverPort} (http://localhost:${serverPort})`);
-  });
+  createServer(app).listen();
 
 });
 
