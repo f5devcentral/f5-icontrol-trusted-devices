@@ -23,5 +23,5 @@ npm start
 To view the Swagger UI interface:
 
 ```
-open http://localhost:3000
+open http://localhost:3000/TrustedDevicesUI
 ```
