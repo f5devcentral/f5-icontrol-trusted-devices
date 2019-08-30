@@ -37,6 +37,15 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   // Make generic req.body available for JSON submitted for TrustedDevices
   // This overcomes a bug in the old swagger-middleware used by OAS tools.
   app.use(`/TrustedDevices`, bodyParser.json());
+  // Allow for CORS from browsers
+  app.use(`/TrustedDevices`, (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  });
+  app.use(`/TrustedProxy`, (req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  });
 
   // Interpret Swagger resources and attach metadata to request - must be first in swagger-tools middleware chain
   app.use(middleware.swaggerMetadata());
