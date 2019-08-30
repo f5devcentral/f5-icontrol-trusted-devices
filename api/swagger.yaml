@@ -462,7 +462,7 @@ paths:
                   errorCode: 500
                   errorMessage: 'connection timeout'
     x-swagger-router-controller: TrustedProxyController
-  /TrustedProxy/proxy/{targetUUID}/{iControlRESTPath}:
+  /TrustedProxy/proxy/{targetUUID}/{iControlRESTPath}*:
     get:
       tags:
       - Proxy Services

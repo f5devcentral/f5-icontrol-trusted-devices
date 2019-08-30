@@ -554,6 +554,9 @@ const proxyRequest = (targetUUID, path, client_req, client_res) => {
     resolveTargetFromUUID(targetUUID)
         .then((device) => {
             foundDevice = device;
+            if (!path.startsWith('/')) {
+                path = `/${path}`;
+            }
             return signPath(device.targetHost, path);
         })
         .then((signedPath) => {

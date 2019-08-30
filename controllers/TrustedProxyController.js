@@ -70,7 +70,7 @@ module.exports.flushTokenCacheByUUID = function flushTokenCache(req, res, next) 
 
 module.exports.getiControlRESTProxy = function getiControlRESTProxy(req, res, next) {
   const targetUUID = req.swagger.params.targetUUID.value;
-  const iControlRESTPath = req.swagger.params.iControlRESTPath.value;
+  const iControlRESTPath = req.swagger.params.iControlRESTPath.value; 
   logger.debug(`${LOG_PRE} - getiControlRESTProxy - targetUUID: ${targetUUID} - iControlRESTPath: ${iControlRESTPath}`);
   TrustedProxyServices.getiControlRESTProxy(targetUUID, iControlRESTPath, req, res);
 };
