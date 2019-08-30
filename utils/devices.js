@@ -146,6 +146,9 @@ const getTrustedDevices = () => {
                     .catch((error) => {
                         reject(error);
                     });
+            })
+            .catch((error) => {
+                reject(error);
             });
     });
 };
@@ -318,6 +321,10 @@ const _fetchToken = (targetHost) => {
             res.on('error', (error) => {
                 reject(error);
             });
+        });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error retrieving token - ${error}`);
+            reject(error);
         });
         request.write(tokenBody);
         request.end();
@@ -814,12 +821,17 @@ const _queryDeviceGroups = () => {
                     reject(ex);
                 }
             });
-            res.on('error', (err) => {
-                logger.error(`${LOG_PRE} - error querying device groups - ${err}`);
-                reject(err);
+            res.on('error', (error) => {
+                logger.error(`${LOG_PRE} - error querying device groups - ${error}`);
+                reject(error);
             });
         });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error querying device groups - ${error}`);
+            reject(error);
+        });
         request.end();
+
     });
 };
 
@@ -856,6 +868,10 @@ const _createDeviceGroup = (deviceGroupName) => {
                 reject(error);
             });
         });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error creating device groups - ${error}`);
+            reject(error);
+        });
         request.write(deviceGroupBody);
         request.end();
     });
@@ -887,10 +903,14 @@ const _queryDevices = (deviceGroup) => {
                     reject(ex);
                 }
             });
-            res.on('error', (err) => {
-                logger.error(`${LOG_PRE} - error querying devices ${options.path}`);
-                reject(err);
+            res.on('error', (error) => {
+                logger.error(`${LOG_PRE} - error querying devices ${error}`);
+                reject(error);
             });
+        });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error querying devices - ${error}`);
+            reject(error);
         });
         request.end();
     });
@@ -926,10 +946,14 @@ const _createDevice = (deviceGroup, targetHost, targetPort,
                     reject(ex);
                 }
             });
-            res.on('error', (err) => {
-                logger.error(`${LOG_PRE} - error creating device ${err}`);
-                reject(err);
+            res.on('error', (error) => {
+                logger.error(`${LOG_PRE} - error creating device ${error}`);
+                reject(error);
             });
+        });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error creating device - ${error}`);
+            reject(error);
         });
         request.write(deviceBody);
         request.end();
@@ -958,10 +982,14 @@ const _deleteDevice = (deviceGroup, targetUUID) => {
                     reject(ex);
                 }
             });
-            res.on('error', (err) => {
-                logger.error(`${LOG_PRE} - error deleting device ${err}`);
-                reject(err);
+            res.on('error', (error) => {
+                logger.error(`${LOG_PRE} - error deleting device ${error}`);
+                reject(error);
             });
+        });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error deleting device - ${error}`);
+            reject(error);
         });
         request.end();
     });
@@ -1051,6 +1079,10 @@ const _queryCertificates = () => {
                 reject(error);
             });
         });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error querying certificates - ${error}`);
+            reject(error);
+        });
         request.end();
     });
 };
@@ -1081,6 +1113,10 @@ const _deleteCertificate = (certificateId) => {
                 logger.debug(`${LOG_PRE} - error deleting certificates ${error}`);
                 reject(error);
             });
+        });
+        request.on('error', (error) => {
+            logger.error(`${LOG_PRE} - error deleting certificates - ${error}`);
+            reject(error);
         });
         request.end();
     });
@@ -1121,6 +1157,10 @@ const _queryRemoteCertificates = (device) => {
                         reject(error);
                     });
                 });
+                request.on('error', (error) => {
+                    logger.error(`${LOG_PRE} - error querying certificates - ${error}`);
+                    reject(error);
+                });
                 request.end();
             })
             .catch((error) => {
@@ -1158,6 +1198,10 @@ const _deleteRemoteCertificate = (device, certificateId) => {
                         logger.error(`${LOG_PRE} - error deleting certificate ${options.host}:${options.port} - ${certPath}/${certificateId} - ${error}`);
                         reject(error);
                     });
+                });
+                request.on('error', (error) => {
+                    logger.error(`${LOG_PRE} - error deleting certificates - ${error}`);
+                    reject(error);
                 });
                 request.end();
             })
@@ -1206,6 +1250,10 @@ const _queryMachineId = () => {
                     logger.error(`${LOG_PRE} - error retrieved machineId - ${error}`);
                     reject(error);
                 });
+            });
+            request.on('error', (error) => {
+                logger.error(`${LOG_PRE} - error retrieving machineId - ${error}`);
+                reject(error);
             });
             request.end();
         }
