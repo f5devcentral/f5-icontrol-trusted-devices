@@ -159,7 +159,7 @@ const getTrustedDevices = () => {
  **/
 const pingRemoteDevice = (targetUUID) => {
     return new Promise((resolve) => {
-        let foundDevice = {};
+        let foundDevice = null;
         resolveTargetFromUUID(targetUUID)
             .then((device) => {
                 foundDevice = device;
@@ -191,7 +191,10 @@ const pingRemoteDevice = (targetUUID) => {
                     });
                 });
             })
-            .catch(() => {
+            .catch((error) => {
+                if (!foundDevice) {
+                    logger.error(`${LOG_PRE} - proxy taget device ${targetUUID} not found`);
+                }
                 resolve(false);
             });
     });
@@ -550,13 +553,10 @@ const declareDevices = (desiredDevices) => {
  * The response is piped to the response object.
  **/
 const proxyRequest = (targetUUID, path, client_req, client_res) => {
-    let foundDevice = {};
+    let foundDevice = null;
     resolveTargetFromUUID(targetUUID)
         .then((device) => {
             foundDevice = device;
-            if (!path.startsWith('/')) {
-                path = `/${path}`;
-            }
             return signPath(device.targetHost, path);
         })
         .then((signedPath) => {
