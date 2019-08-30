@@ -41,7 +41,7 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   // Allow for CORS from browsers
   app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.setHeader("Access-Control-Allow-Headers", "*");
     next();
   });
 
