@@ -8,6 +8,17 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   version: 1.0.0
+servers:
+  - url: /
+  - url: https://localhost:8443/
+  - url: https://{host}:{port}/
+    variables:
+      host:
+        default: localhost
+        description: The host to issue requests
+      port:
+        default: '443'
+        description: The host port to issue requests
 security:
   - BasicAuth: []
   - BearerAuth: []
