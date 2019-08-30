@@ -83,7 +83,7 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   app.use(`${APP_URI_PREFIX}/docs`, serveStatic(pathToSwaggerUi, { 'index': ['index.html'] }));
 
   // Create a HTTP redirect from /docs to our patched index.html
-  app.use(`${APP_URI_PREFIX}/docs/`, (req, res) => {
+  app.use(`${APP_URI_PREFIX}/`, (req, res) => {
     res.setHeader('Location', `${APP_URI_PREFIX}/docs/index.html`);
     res.writeHead(302, 'redirecting to swaggerui');
     res.end();
