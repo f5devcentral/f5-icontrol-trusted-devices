@@ -8,6 +8,10 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   version: 1.0.0
+security:
+  - BasicAuth: []
+  - BearerAuth: []
+  - ApiKeyAuth: []
 tags:
 - name: Trust Services
   description: Management trusts between TMOS devices
@@ -19,6 +23,10 @@ paths:
       tags:
       - Trust Services
       summary: retrieve defined device trusts optionally matching filters
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: getTrusts
       parameters:
         - name: targetUUID
@@ -78,6 +86,10 @@ paths:
       tags:
       - Trust Services
       summary: add devices to trust
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: addTrusts
       requestBody:
         description: Add declared devices to existing trusts
@@ -128,6 +140,10 @@ paths:
       tags:
       - Trust Services
       summary: declare device trusts
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: declareTrusts
       requestBody:
         description: Declare all trusts
@@ -178,6 +194,10 @@ paths:
       tags:
       - Trust Services
       summary: delete device from existing trusts matching filters
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: deleteTrust
       parameters:
         - name: targetUUID
@@ -234,6 +254,10 @@ paths:
       tags:
       - Trust Services
       summary: retrieve defined device trusts matching the targetUUID
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: getTrust
       parameters:
         - name: targetUUID
@@ -267,6 +291,10 @@ paths:
       tags:
       - Trust Services
       summary: delete device from existing trusts matching the targetUUID
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: deleteTrustByUUID
       parameters:
         - name: targetUUID
@@ -294,6 +322,10 @@ paths:
       tags:
       - Proxy Services
       summary: retrieve trust token for trusted TMOS devices
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: getTrustToken
       parameters:
         - name: targetUUID
@@ -349,6 +381,10 @@ paths:
       tags:
       - Proxy Services
       summary: delete all cached tokens for trusted TMOS devices
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: flushTokenCache
       responses:
         200:
@@ -373,6 +409,10 @@ paths:
       tags:
       - Proxy Services
       summary: retrieve trust token for trusted TMOS devices
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: getTrustTokenByUUID
       parameters:
         - name: targetUUID
@@ -422,6 +462,10 @@ paths:
       tags:
       - Proxy Services
       summary: delete cached token for a TMOS devices
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: flushTokenCacheByUUID
       parameters:
         - name: targetUUID
@@ -467,6 +511,10 @@ paths:
       tags:
       - Proxy Services
       summary: proxy a GET iControl REST API request to a trusted Host
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: getiControlRESTProxy
       parameters:
         - name: targetUUID
@@ -519,6 +567,10 @@ paths:
       tags:
       - Proxy Services
       summary: proxy a PATCH iControl REST API request to a trusted Host
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: patchiControlRESTProxy
       parameters:
         - name: targetUUID
@@ -578,6 +630,10 @@ paths:
       tags:
       - Proxy Services
       summary: proxy an iControl REST API request to a trusted Host
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: postiControlRESTProxy
       parameters:
         - name: targetUUID
@@ -637,6 +693,10 @@ paths:
       tags:
       - Proxy Services
       summary: proxy an iControl REST API request to a trusted Host
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: putiControlRESTProxy
       parameters:
         - name: targetUUID
@@ -696,6 +756,10 @@ paths:
       tags:
       - Proxy Services
       summary: proxy an iControl REST API request to a trusted Host
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
       operationId: deleteiControlRESTProxy
       parameters:
         - name: targetUUID
