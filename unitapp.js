@@ -40,7 +40,7 @@ var jsonspecfile = path.join(__dirname, './api') + '/swagger.json';
 fs.writeFileSync(jsonspecfile, JSON.stringify(swaggerDoc, null, 4), { encoding: 'utf8', flag: 'w' });
 
 // swagger-UI URI prefix
-const APP_URI_PREFIX = '/TrustedDevicesUI';
+const SWAGGERUI_PREFIX = '/TrustedDevicesUI';
 
 // Initialize the Swagger middleware
 oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
@@ -48,15 +48,13 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   // Make generic req.body available for JSON submitted for TrustedDevices
   // This overcomes a bug in the old swagger-middleware used by OAS tools.
   app.use(`/TrustedDevices`, bodyParser.json());
-  // Allow for CORS from browsers
-  app.use(`/TrustedDevices`, (req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  });
 
-  app.use(`/TrustedProxy`, (req, res, next) => {
+
+  // Allow for CORS from browsers
+  app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
   });
 
   // Interpret Swagger resources and attach metadata to request - must be first in swagger-tools middleware chain
@@ -81,20 +79,27 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   // Replace the ancient OAS Swagger-UI with a updated swagger-ui-dist
 
   // Serve up our Schema in JSON format for swagger-ui
-  app.use(`${APP_URI_PREFIX}/api-docs`, serveStatic(path.join(__dirname, './api'), { 'index': ['swagger.json'] }));
+  app.use(`${SWAGGERUI_PREFIX}/api-docs`, serveStatic(path.join(__dirname, './api'), { 'index': ['swagger.json'] }));
 
   // Replace the static index.html form 'swagger-ui-dist' with patched content 
   // pointing to our relative URI for our schema JSON file
-  app.use(`${APP_URI_PREFIX}/docs/index.html`, (req, res) => {
-    res.write(swaggerUIIndex(`${APP_URI_PREFIX}/api-docs/swagger.json`));
+  app.use(`${SWAGGERUI_PREFIX}/docs/index.html`, (req, res) => {
+    res.write(swaggerUIIndex(`${SWAGGERUI_PREFIX}/api-docs/swagger.json`));
     res.end();
   });
   // Serve up swagger-ui content
-  app.use(`${APP_URI_PREFIX}/docs`, serveStatic(pathToSwaggerUi, { 'index': ['index.html'] }));
+  app.use(`${SWAGGERUI_PREFIX}/docs`, serveStatic(pathToSwaggerUi, { 'index': ['index.html'] }));
 
   // Create a HTTP redirect from /docs to our patched index.html
-  app.use(`${APP_URI_PREFIX}/`, (req, res) => {
-    res.setHeader('Location', `${APP_URI_PREFIX}/docs/index.html`);
+  app.use(`${SWAGGERUI_PREFIX}/`, (req, res) => {
+    res.setHeader('Location', `${SWAGGERUI_PREFIX}/docs/index.html`);
+    res.writeHead(302, 'redirecting to swaggerui');
+    res.end();
+  });
+
+  // Redirect Index to SwaggerUI index
+  app.use(`/`, (req, res) => {
+    res.setHeader('Location', `${SWAGGERUI_PREFIX}/docs/index.html`);
     res.writeHead(302, 'redirecting to swaggerui');
     res.end();
   });
