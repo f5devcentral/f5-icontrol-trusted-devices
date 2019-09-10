@@ -114,7 +114,9 @@ paths:
                 devices:
                   type: array
                   items:
-                    $ref: '#/components/schemas/CreateDevices'
+                    oneOf:
+                      - $ref: '#/components/schemas/CreateDevicesUsernamePassphrase'
+                      - $ref: '#/components/schemas/CreateDevicesSSHKey'
         required: true
       responses:
         202:
@@ -170,7 +172,9 @@ paths:
                 devices:
                   type: array
                   items:
-                    $ref: '#/components/schemas/CreateDevices'
+                    oneOf:
+                      - $ref: '#/components/schemas/CreateDevicesUsernamePassphrase'
+                      - $ref: '#/components/schemas/CreateDevicesSSHKey'
         required: true
       responses:
         202:
@@ -862,7 +866,7 @@ components:
       in: header
       name: X-API-Key
   schemas:
-    CreateDevices:
+    CreateDevicesUsernamePassphrase:
       type: object
       required:
         - targetHost
@@ -886,6 +890,29 @@ components:
         targetPort: 443
         targetUsername: admin
         targetPassphrase: admin
+    CreateDevicesSSHKey:
+      type: object
+      required:
+        - targetHost
+        - targetPort
+        - targetSshKey
+      properties:
+        targetHost:
+          description: The trusted devices targetHost definition
+          type: string
+        targetPort:
+          $ref: '#/components/schemas/tcpPort'
+        targetUsername:
+          description: The SSH session user
+          type: string
+          default: root
+        targetSshKey:
+          description: Path to the SSH key to use to establish trust
+          type: string
+      example:
+        targetHost: 172.13.1.103
+        targetPort: 22
+        targetSshKey: /sshkeys/id_rsa
     DeclaredDevices:
       type: object
       properties:

@@ -2,19 +2,16 @@
 /* jshint node: true */
 'use strict';
 
-const logger = require('./utils/logger');
-
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
 
 const app = require('connect')();
+
 const bodyParser = require('body-parser');
 const oas3Tools = require('oas3-tools');
 const serveStatic = require('serve-static');
 const pathToSwaggerUi = require('swagger-ui-dist').absolutePath();
 const jsyaml = require('js-yaml');
-const serverPort = process.env.PORT || 3100;
 
 // swaggerRouter configuration
 var options = {
@@ -37,7 +34,7 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   // Make generic req.body available for JSON submitted for TrustedDevices
   // This overcomes a bug in the old swagger-middleware used by OAS tools.
   app.use(`/TrustedDevices`, bodyParser.json());
-  
+
   // Allow for CORS from browsers
   app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -92,11 +89,6 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
     res.end();
   });
 
-  // Start the server
-  http.createServer(app).listen(serverPort, function () {
-    logger.info(`Your server is listening on port ${serverPort} (http://localhost:${serverPort})`);
-  });
-
 });
 
 /** 
@@ -110,3 +102,5 @@ const swaggerUIIndex = (indexUri) => {
     .replace(/url:(.*)?/, 'url: "' + indexUri + '",');
   return indexContent;
 };
+
+module.exports = app;

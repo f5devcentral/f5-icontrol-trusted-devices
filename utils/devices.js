@@ -10,9 +10,12 @@ const url = require('url');
 const http = require('http');
 const https = require('https');
 
+const sshClient = require('ssh2').Client;
+
 const certPath = '/mgmt/shared/device-certificates';
 const deviceGroupsPath = '/mgmt/shared/resolver/device-groups';
 const deviceInfoPath = '/mgmt/shared/identified-devices/config/device-info';
+const usersPath = '/mgmt/shared/authz/users';
 const pingPath = '/mgmt/shared/echo';
 
 const TARGET_HOST_TIMEOUT = 300000;
@@ -45,9 +48,14 @@ const STARTED = 'STARTED';
 const DEVICEGROUP_PREFIX = 'TrustDevices_';
 const MAX_DEVICES_PER_GROUP = 20;
 
-// local machineId cache
-global.machineId = null;
+const INJECTED_USERNAME_PREFIX = 'f5trusteddevice';
 
+// local globals cache
+global.machineId = null;
+global.serviceUsername = null;
+global.servicePassword = null;
+global.hostsToClean = [];
+global.downDevices = {};
 
 /** helper functions */
 
@@ -197,6 +205,8 @@ const pingRemoteDevice = (targetUUID) => {
             .catch((error) => {
                 if (!foundDevice) {
                     logger.error(`${LOG_PRE} - proxy taget device ${targetUUID} not found`);
+                } else {
+                    logger.error(`${LOG_PRE} - ${error}`);
                 }
                 resolve(false);
             });
@@ -262,7 +272,9 @@ const signPath = (targetHost, path) => {
  **/
 const getToken = (targetHost) => {
     return new Promise((resolve, reject) => {
-        if (targetHost in tokenCache) {
+        if (targetHost in Object.keys(global.downDevices)) {
+            reject(new Error(`${targetHost} is currently unavailable`));
+        } else if (targetHost in tokenCache) {
             const now = Date.now();
             const cachetimeleft = TOKEN_TIMEOUT - (now - tokenCache[targetHost].timestamp);
             if (cachetimeleft > 0) {
@@ -332,6 +344,263 @@ const _fetchToken = (targetHost) => {
 };
 
 
+const _userExists = (device, username) => {
+    return new Promise((resolve, reject) => {
+        _queryRemoteUsers(device)
+            .then((users) => {
+                let foundUser = false;
+                users.forEach((user) => {
+                    if (user == username) {
+                        foundUser = true;
+                    }
+                });
+                resolve(foundUser);
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+};
+
+
+const _sshUserExists = (targetHost, targetPort, targetUsername, targetSshKey, userName) => {
+    return new Promise((resolve, reject) => {
+        if (!fs.existsSync(targetSshKey)) {
+            reject(new Error(`SSH key ${targetSshKey} not found.`));
+        } else {
+            const privateKey = fs.readFileSync(targetSshKey);
+            const queryUsersCmd = "curl -su 'admin:' http://localhost:8100/mgmt/shared/authz/users";
+            const conn = sshClient();
+            conn.on('ready', () => {
+                conn.exec(queryUsersCmd, (error, stream) => {
+                    if (error) {
+                        reject(error);
+                    }
+                    let usersText = '';
+                    stream.on('close', (code) => {
+                        if (code == 0) {
+                            const users = JSON.parse(usersText);
+                            let foundUser = false;
+                            users.items.forEach((user) => {
+                                if (user.name == userName) {
+                                    foundUser = true;
+                                }
+                            });
+                            resolve(foundUser);
+                        } else {
+                            reject(new Error(`SSH query of users responded with code: ${code}`));
+                        }
+                    }).on('data', function (data) {
+                        usersText += data;
+                    });
+                });
+            }).on('error', (error) => {
+                logger.error(`${LOG_PRE} - SSH query of users error: ${error}`);
+                reject(error);
+            }).connect({
+                host: targetHost,
+                port: targetPort,
+                username: targetUsername,
+                privateKey: privateKey
+            });
+        }
+    });
+};
+
+
+const _deleteUser = (device) => {
+    return new Promise((resolve, reject) => {
+        let serviceUserName = null;
+        _queryServiceUsername()
+            .then((userName) => {
+                serviceUserName = userName;
+                return _userExists(device, userName);
+            })
+            .then((exists) => {
+                if (exists) {
+                    return _deleteRemoteUser(device, serviceUserName);
+                } else {
+                    return resolve();
+                }
+            })
+            .then(() => {
+                resolve();
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+};
+
+
+const _sshDeleteUser = (targetHost, targetPort, targetUsername, targetSshKey) => {
+    return new Promise((resolve, reject) => {
+        let serviceUserName = null;
+        _queryServiceUsername()
+            .then((userName) => {
+                serviceUserName = userName;
+                return _sshUserExists(targetHost, targetPort, targetUsername, targetSshKey, userName);
+            })
+            .then((userExists) => {
+                if (userExists) {
+                    const privateKey = fs.readFileSync(targetSshKey);
+                    const deleteUserCmd = `tmsh delete auth user ${serviceUserName}`;
+                    const conn = sshClient();
+                    conn.on('ready', () => {
+                        conn.exec(deleteUserCmd, (error, stream) => {
+                            if (error) {
+                                reject(error);
+                            }
+                            stream.on('close', (code) => {
+                                if (code == 0) {
+                                    resolve();
+                                } else {
+                                    reject(new Error(`SSH delete users responded with code: ${code}`));
+                                }
+                            });
+                        });
+                    }).on('error', (error) => {
+                        logger.error(`${LOG_PRE} - SSH delete user error: ${error}`);
+                        reject(error);
+                    }).connect({
+                        host: targetHost,
+                        port: targetPort,
+                        username: targetUsername,
+                        privateKey: privateKey
+                    });
+                } else {
+                    resolve();
+                }
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+};
+
+
+const _sshCreateUser = (targetHost, targetPort, targetUsername, targetSshKey) => {
+    return new Promise((resolve, reject) => {
+        let serviceUserName = null;
+        _sshDeleteUser(targetHost, targetPort, targetUsername, targetSshKey)
+            .then(() => {
+                return _queryServiceUsername();
+            })
+            .then((userName) => {
+                serviceUserName = userName;
+                return _queryServicePassword();
+            })
+            .then((password) => {
+                const privateKey = fs.readFileSync(targetSshKey);
+                const createUserCmd = `tmsh create auth user ${serviceUserName} shell none partition-access add { all-partitions { role admin } } password ${password}`;
+                var conn = new sshClient();
+                conn.on('ready', () => {
+                    conn.exec(createUserCmd, (error, stream) => {
+                        if (error) {
+                            reject(error);
+                        }
+                        stream.on('close', (code) => {
+                            conn.end();
+                            if (code == 0) {
+                                const getMgmtPortCmd = "curl -su 'admin:' http://localhost:8100/mgmt/shared/resolver/device-groups/tm-shared-all-big-ips/devices|python -c 'import sys, json; print json.load(sys.stdin)[\"items\"][0][\"httpsPort\"]'";
+                                conn.exec(getMgmtPortCmd, (error, queryStream) => {
+                                    if (error) {
+                                        reject(error);
+                                    }
+                                    let httpsPort = 443;
+                                    queryStream.on('close', (code) => {
+                                        if (code == 0) {
+                                            global.hostsToClean.append(targetHost);
+                                            resolve(serviceUserName, password, httpsPort);
+                                        } else {
+                                            _sshDeleteUser(targetHost, targetPort, targetUsername, targetSshKey)
+                                                .then(() => {
+                                                    reject(`SSH command could not resolve httpsPort. Exited with code: ${code}`);
+                                                })
+                                                .catch((error) => {
+                                                    reject(error);
+                                                });
+                                        }
+                                    }).on('data', function (data) {
+                                        httpsPort = parseInt(data);
+                                    });
+                                });
+                            } else {
+                                reject(new Error(`SSH command to create user exited with code: ${code}`));
+                            }
+                        });
+                    });
+                }).on('error', (error) => {
+                    logger.error(`${LOG_PRE} - SSH create user error: ${error}`);
+                    reject(error);
+                }).connect({
+                    host: targetHost,
+                    port: targetPort,
+                    username: targetUsername,
+                    privateKey: privateKey
+                });
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+};
+
+
+const cleanDevices = () => {
+    const needCleaning = [];
+    getTrustedDevices()
+        .then((devices) => {
+            const deviceCleanPromises = [];
+            devices.forEach((device) => {
+                if (device.available && (
+                    device.targetHost in global.needCleaning ||
+                    device.targetUUID in global.needCleaning
+                    )) {
+                    deviceCleanPromises.push(_deleteUser(device))
+                        .catch((error) => {
+                            logger.error(`${LOG_PRE} - error deleting service user on ${device.targetHost} - ${error}`);
+                            needCleaning.push(device.targetHost);
+                        });
+                }
+            });
+            Promise.all(deviceCleanPromises)
+                .then(() => {
+                    global.needCleaning = needCleaning;
+                });
+        })
+        .catch((error) => {
+            logger.error(`${LOG_PRE} - error cleaning devices`);
+
+        });
+};
+
+
+const monitorDevices = () => {
+    getTrustedDevices()
+        .then((devices) => {
+            const monitorPromises = [];
+            devices.forEach((device) => {
+                monitorPromises.push(pingRemoteDevice(device.targetUUID))
+                    .then((deviceUp) => {
+                        if(deviceUp) {
+                            if(device.targetHost in Object.keys(global.downDevices)) {
+                                delete(global.downDevices[device.targetHost]);
+                            }
+                        } else {
+                            global.downDevices[device.targetHost] = 1;
+                        }
+                    });
+            });
+            Promise.all(monitorPromises);
+                logger.debug(`${LOG_PRE} - monitor run on ${monitorPromises.length} device(s) completed`);
+        })
+        .catch((error) => {
+            logger.error(`${LOG_PRE} - error monitoring devices`);
+
+        });
+};
+
 /**
  * Flushes trust tokens form the token cache
  **/
@@ -377,9 +646,20 @@ const addDevices = (targets) => {
     return new Promise((resolve, reject) => {
         const addDevicePromises = [];
         targets.forEach((target) => {
-            addDevicePromises.push(
-                addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase)
-            );
+            if (target.hasOwnProperty('targetSshKey')) {
+                addDevicePromises.push(
+                    _sshCreateUser(target.targetHost, target.targetPort, target.targetUsername, target.targetSshKey)
+                        .then((targetUsername, targetPassphrase, targetPort) => {
+                            addDevicePromises.push(
+                                addDevice(target.targetHost, targetPort, targetUsername, targetPassphrase)
+                            );
+                        })
+                );
+            } else {
+                addDevicePromises.push(
+                    addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase)
+                );
+            }
         });
         Promise.all(addDevicePromises)
             .then(() => {
@@ -515,20 +795,36 @@ const declareDevices = (desiredDevices) => {
                                 // Device is desired, exists already, and is active or in progress. Don't add it.
                                 desiredDevices = desiredDevices.filter(t => `${device.targetHost}:${device.targetPort}` !== device); // jshint ignore:line
                             } else {
-                                if (!desiredDeviceDict[device].hasOwnProperty('targetUsername') ||
-                                    !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')) {
+                                if (
+                                    (
+                                        !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
+                                        !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')
+                                    ) ||
+                                    (
+                                        !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
+                                        !desiredDeviceDict[device].hasOwnProperty('targetSshKey')
+                                    )
+                                ) {
                                     const err = new Error();
                                     err.statusCode = 400;
-                                    err.message = 'declared device missing targetUsername or targetPassphrase';
+                                    err.message = 'declared device missing targetUsername, targetPassphrase, or targetSshKey';
                                     throw err;
                                 }
                             }
                         } else {
-                            if (!desiredDeviceDict[device].hasOwnProperty('targetUsername') ||
-                                !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')) {
+                            if (
+                                (
+                                    !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
+                                    !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')
+                                ) ||
+                                (
+                                    !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
+                                    !desiredDeviceDict[device].hasOwnProperty('targetSshKey')
+                                )
+                            ) {
                                 const err = new Error();
                                 err.statusCode = 400;
-                                err.message = 'declared device missing targetUsername or targetPassphrase';
+                                err.message = 'declared device missing targetUsername, targetPassphrase, or targetSshKey';
                                 throw err;
                             }
                         }
@@ -776,6 +1072,8 @@ const _getTrustedDevicesInGroup = (deviceGroup) => {
                         if (_inProgress(device.state)) {
                             targetDevice.available = false;
                         } else if (_inFailed(device.state)) {
+                            targetDevice.available = false;
+                        } else if (device.address in Object.keys(global.downDevices)) {
                             targetDevice.available = false;
                         } else {
                             targetDevice.available = true;
@@ -1179,6 +1477,7 @@ const _deleteRemoteCertificate = (device, certificateId) => {
                 options.host = device.targetHost;
                 options.port = device.targetPort;
                 options.path = `${certPath}/${certificateId}?${token.queryParam}`;
+                options.method = 'DELETE';
                 logger.debug(`${LOG_PRE} - deleting certificate ${options.host}:${options.port} - ${certPath}/${certificateId}`);
                 let body = '';
                 const request = https.request(options, (res) => {
@@ -1208,6 +1507,36 @@ const _deleteRemoteCertificate = (device, certificateId) => {
             .catch((error) => {
                 reject(error);
             });
+    });
+};
+
+
+const _queryServicePassword = () => {
+    return new Promise((resolve, reject) => {
+        if (global.servicePassword) {
+            resolve(global.servicePassword);
+        } else {
+            global.servicePassword = Math.random().toString(36).slice(-8) + 'tD0' + Math.random().toString(36).slice(-8);
+            resolve(global.serviceUsername);
+        }
+    });
+};
+
+
+const _queryServiceUsername = () => {
+    return new Promise((resolve, reject) => {
+        if (global.serviceUsername) {
+            resolve(global.serviceUsername);
+        } else {
+            _queryMachineId()
+                .then((machineId) => {
+                    global.serviceUsername = INJECTED_USERNAME_PREFIX + machineId.slice(-12);
+                    resolve(global.serviceUsername);
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        }
     });
 };
 
@@ -1261,6 +1590,100 @@ const _queryMachineId = () => {
 };
 
 
+const _queryRemoteUsers = (device) => {
+    return new Promise((resolve, reject) => {
+        getToken(device.targetHost)
+            .then((token) => {
+                const options = Object.assign({}, remoteOptions);
+                options.headers = Object.assign({}, remoteHeaders);
+                options.host = device.targetHost;
+                options.port = device.targetPort;
+                options.path = `${usersPath}?${token.queryParam}`;
+                let body = '';
+                logger.debug(`${LOG_PRE} - querying users ${options.path}`);
+                const request = http.request(options, (res) => {
+                    res.on('data', (seg) => {
+                        body += seg;
+                    });
+                    res.on('end', () => {
+                        try {
+                            _handleErrors(res, body);
+                            const respobj = JSON.parse(body);
+                            const returnUsers = [];
+                            if (respobj.hasOwnProperty('items')) {
+                                respobj.items.forEach((user) => {
+                                    returnUsers.push(user.name);
+                                });
+                            }
+                            resolve(returnUsers);
+                        } catch (ex) {
+                            logger.error(`${LOG_PRE} - exception querying users - ${ex}`);
+                            reject(ex);
+                        }
+                    });
+                    res.on('error', (error) => {
+                        logger.error(`${LOG_PRE} - error querying users - ${error}`);
+                        reject(error);
+                    });
+                });
+                request.on('error', (error) => {
+                    logger.error(`${LOG_PRE} - error querying users - ${error}`);
+                    reject(error);
+                });
+                request.end();
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+};
+
+
+const _deleteRemoteUser = (device, username) => {
+    return new Promise((resolve, reject) => {
+        getToken(device.targetHost)
+            .then((token) => {
+                const options = Object.assign({}, remoteOptions);
+                options.headers = Object.assign({}, remoteHeaders);
+                options.host = device.targetHost;
+                options.port = device.targetPort;
+                options.path = `${usersPath}/${username}?${token.queryParam}`;
+                options.method = 'DELETE';
+                let body = '';
+                logger.debug(`${LOG_PRE} - delete user ${options.path}`);
+                const request = http.request(options, (res) => {
+                    res.on('data', (seg) => {
+                        body += seg;
+                    });
+                    res.on('end', () => {
+                        try {
+                            if (res.statusCode == 404) {
+                                resolve({});
+                            } else {
+                                _handleErrors(res, body);
+                                const respobj = JSON.parse(body);
+                                resolve(respobj);
+                            }
+                        } catch (ex) {
+                            logger.error(`${LOG_PRE} - exception deleting user ${username} - ${ex}`);
+                            reject(ex);
+                        }
+                    });
+                    res.on('error', (error) => {
+                        logger.error(`${LOG_PRE} - error deleting user ${username} - ${error}`);
+                        reject(error);
+                    });
+                });
+                request.on('error', (error) => {
+                    logger.error(`${LOG_PRE} - error deleting user ${username} - ${error}`);
+                    reject(error);
+                });
+                request.end();
+            });
+    });
+};
+
+
 const _handleErrors = (res, body) => {
     if (res.statusCode > 399) {
         const err = new Error(`request Error: status: ${res.statusCode} error: ${body}`);
@@ -1280,6 +1703,8 @@ exports.getTrustedDevice = getTrustedDevice;
 exports.getTrustedDevices = getTrustedDevices;
 exports.declareDevices = declareDevices;
 exports.pingRemoteDevice = pingRemoteDevice;
+exports.cleanDevices = cleanDevices;
+exports.monitorDevices = monitorDevices;
 exports.getToken = getToken;
 exports.flushTokenCache = flushTokenCache;
 exports.resolveTargetFromUUID = resolveTargetFromUUID;
