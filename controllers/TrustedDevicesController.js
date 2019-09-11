@@ -14,7 +14,7 @@ module.exports.addTrusts = function addTrusts (req, res, next) {
   TrustedDevicesServices.addTrusts(req.body)
     .then( (response) => {
       logger.debug(`${LOG_PRE} - addTrusts returned`);
-      utils.writeJson(res, response);
+      utils.writeJson(res, response, 202);
     })
     .catch( (error) => {
       logger.debug(`${LOG_PRE} - addTrusts errored`);
@@ -28,7 +28,7 @@ module.exports.declareTrusts = function declareTrusts (req, res, next) {
   TrustedDevicesServices.declareTrusts(req.body)
     .then( (response) => {
       logger.debug(`${LOG_PRE} - declareTrusts returned`);
-      utils.writeJson(res, response);
+      utils.writeJson(res, response, 202);
     })
     .catch( (error) => {
       logger.debug(`${LOG_PRE} - declareTrusts errored`);
