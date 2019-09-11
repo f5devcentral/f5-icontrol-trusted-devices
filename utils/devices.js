@@ -50,6 +50,11 @@ const MAX_DEVICES_PER_GROUP = 20;
 
 const INJECTED_USERNAME_PREFIX = 'f5trusteddevice';
 
+const DEFAULT_HTTPS_USERNAME = 'admin';
+const DEFAULT_HTTPS_PORT = 443;
+const DEFAULT_SSH_USERNAME = 'root';
+const DEFAULT_SSH_PORT = 22;
+
 // local globals cache
 global.machineId = null;
 global.serviceUsername = null;
@@ -344,6 +349,36 @@ const _fetchToken = (targetHost) => {
 };
 
 
+const _resolveTarget = (target) => {
+    return new Promise((resolve, reject) => {
+        if (target.hasOwnProperty('targetSshKey')) {
+            if(!target.hasOwnProperty('targetPort')) {
+                target.targetPort = DEFAULT_SSH_PORT;
+            }
+            if(!target.hasOwnProperty('targetUsername')) {
+                target.targetUsername = DEFAULT_SSH_USERNAME;
+            }
+            _sshResolveTarget(target.targetHost, target.targetPort, target.targetUsername, target.targetSshKey)
+                .then((target) => {
+                    logger.info(`${LOG_PRE} - target resolved via SSH as ${target.targetHost}:${target.targetPort} targetUsername: ${target.targetUsername}`);
+                    resolve(target);
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        } else {
+            if(!target.hasOwnProperty('targetPort')) {
+                target.targetPort = DEFAULT_HTTPS_PORT;
+            }
+            if(!target.hasOwnProperty('targetUsername')) {
+                target.targetUsername = DEFAULT_HTTPS_USERNAME;
+            }
+            resolve(target);
+        }
+    });
+};
+
+
 const _userExists = (device, username) => {
     return new Promise((resolve, reject) => {
         _queryRemoteUsers(device)
@@ -366,10 +401,13 @@ const _userExists = (device, username) => {
 const _sshUserExists = (targetHost, targetPort, targetUsername, targetSshKey, userName) => {
     return new Promise((resolve, reject) => {
         if (!fs.existsSync(targetSshKey)) {
-            reject(new Error(`SSH key ${targetSshKey} not found.`));
+            const sshErr = new Error(`SSH key ${targetSshKey} not found.`);
+            sshErr.statusCode = 404;
+            reject(sshErr);
         } else {
             const privateKey = fs.readFileSync(targetSshKey);
             const queryUsersCmd = "curl -su 'admin:' http://localhost:8100/mgmt/shared/authz/users";
+            logger.info(`${LOG_PRE} - checking if service account user exists via ssh://${targetUsername}@${targetHost}:${targetPort}`);
             const conn = sshClient();
             conn.on('ready', () => {
                 conn.exec(queryUsersCmd, (error, stream) => {
@@ -379,13 +417,14 @@ const _sshUserExists = (targetHost, targetPort, targetUsername, targetSshKey, us
                     let usersText = '';
                     stream.on('close', (code) => {
                         if (code == 0) {
-                            const users = JSON.parse(usersText);
+                            const users = JSON.parse(usersText).items;
                             let foundUser = false;
-                            users.items.forEach((user) => {
+                            users.forEach((user) => {
                                 if (user.name == userName) {
                                     foundUser = true;
                                 }
                             });
+                            logger.info(`${LOG_PRE} - service user exists: ${foundUser}`);
                             resolve(foundUser);
                         } else {
                             reject(new Error(`SSH query of users responded with code: ${code}`));
@@ -443,6 +482,7 @@ const _sshDeleteUser = (targetHost, targetPort, targetUsername, targetSshKey) =>
             })
             .then((userExists) => {
                 if (userExists) {
+                    logger.info(`${LOG_PRE} - deleting old service account entry via ssh://${targetUsername}@${targetHost}:${targetPort}`);
                     const privateKey = fs.readFileSync(targetSshKey);
                     const deleteUserCmd = `tmsh delete auth user ${serviceUserName}`;
                     const conn = sshClient();
@@ -457,6 +497,8 @@ const _sshDeleteUser = (targetHost, targetPort, targetUsername, targetSshKey) =>
                                 } else {
                                     reject(new Error(`SSH delete users responded with code: ${code}`));
                                 }
+                            }).on('data', function (data) {
+                                logger.info(`${LOG_PRE} - SSH command complete`);
                             });
                         });
                     }).on('error', (error) => {
@@ -478,8 +520,43 @@ const _sshDeleteUser = (targetHost, targetPort, targetUsername, targetSshKey) =>
     });
 };
 
+const _getHttpsPort = (targetHost, targetPort, targetUsername, targetSshKey) => {
+    return new Promise((resolve, reject) => {
+        const privateKey = fs.readFileSync(targetSshKey);
+        const conn = new sshClient();
+        const getMgmtPortCmd = "curl -su 'admin:' http://localhost:8100/mgmt/shared/resolver/device-groups/tm-shared-all-big-ips/devices|python -c 'import sys, json; print json.load(sys.stdin)[\"items\"][0][\"httpsPort\"]'";
+        let httpsPort = 443;
+        conn.on('ready', () => {
+            conn.exec(getMgmtPortCmd, (error, stream) => {
+                if (error) {
+                    reject(error);
+                }
+                stream.on('close', (code) => {
+                    if (code == 0) {
+                        logger.info(`${LOG_PRE} - https port for ${targetHost} is ${httpsPort}`);
+                        global.hostsToClean.push(targetHost);
+                        resolve(httpsPort);
+                    } else {
+                        logger.error(`could retrieve https service port from ${targetHost}.. cmd exited with code: ${code}`);
+                        reject(new Error('Could not determine https port'));
+                    }
+                }).on('data', function (data) {
+                    httpsPort = parseInt(data);
+                });
+            })
+        }).on('error', (error) => {
+            logger.error(`${LOG_PRE} - SSH query of users error: ${error}`);
+            reject(error);
+        }).connect({
+            host: targetHost,
+            port: targetPort,
+            username: targetUsername,
+            privateKey: privateKey
+        });
+    });
+};
 
-const _sshCreateUser = (targetHost, targetPort, targetUsername, targetSshKey) => {
+const _sshResolveTarget = (targetHost, targetPort, targetUsername, targetSshKey) => {
     return new Promise((resolve, reject) => {
         let serviceUserName = null;
         _sshDeleteUser(targetHost, targetPort, targetUsername, targetSshKey)
@@ -492,8 +569,9 @@ const _sshCreateUser = (targetHost, targetPort, targetUsername, targetSshKey) =>
             })
             .then((password) => {
                 const privateKey = fs.readFileSync(targetSshKey);
+                logger.info(`${LOG_PRE} - creating service account user via ssh://${targetUsername}@${targetHost}:${targetPort}`);
                 const createUserCmd = `tmsh create auth user ${serviceUserName} shell none partition-access add { all-partitions { role admin } } password ${password}`;
-                var conn = new sshClient();
+                const conn = new sshClient();
                 conn.on('ready', () => {
                     conn.exec(createUserCmd, (error, stream) => {
                         if (error) {
@@ -502,32 +580,30 @@ const _sshCreateUser = (targetHost, targetPort, targetUsername, targetSshKey) =>
                         stream.on('close', (code) => {
                             conn.end();
                             if (code == 0) {
-                                const getMgmtPortCmd = "curl -su 'admin:' http://localhost:8100/mgmt/shared/resolver/device-groups/tm-shared-all-big-ips/devices|python -c 'import sys, json; print json.load(sys.stdin)[\"items\"][0][\"httpsPort\"]'";
-                                conn.exec(getMgmtPortCmd, (error, queryStream) => {
-                                    if (error) {
-                                        reject(error);
-                                    }
-                                    let httpsPort = 443;
-                                    queryStream.on('close', (code) => {
-                                        if (code == 0) {
-                                            global.hostsToClean.append(targetHost);
-                                            resolve(serviceUserName, password, httpsPort);
-                                        } else {
-                                            _sshDeleteUser(targetHost, targetPort, targetUsername, targetSshKey)
-                                                .then(() => {
-                                                    reject(`SSH command could not resolve httpsPort. Exited with code: ${code}`);
-                                                })
-                                                .catch((error) => {
-                                                    reject(error);
-                                                });
-                                        }
-                                    }).on('data', function (data) {
-                                        httpsPort = parseInt(data);
+                                _getHttpsPort(targetHost, targetPort, targetUsername, targetSshKey)
+                                    .then((httpsPort) => {
+                                        const deviceTarget = {
+                                            targetHost: targetHost,
+                                            targetPort: httpsPort,
+                                            targetUsername: serviceUserName,
+                                            targetPassphrase: password
+                                        };
+                                        resolve(deviceTarget);
+                                    })
+                                    .catch((error) => {
+                                        _sshDeleteUser(targetHost, targetPort, targetUsername, targetSshKey)
+                                            .then(() => {
+                                                reject(`SSH command could not resolve httpsPort.. Deleting service account.`);
+                                            })
+                                            .catch((error) => {
+                                                reject(error);
+                                            });
                                     });
-                                });
                             } else {
                                 reject(new Error(`SSH command to create user exited with code: ${code}`));
                             }
+                        }).on('data', function (data) {
+                            logger.info(`${LOG_PRE} - SSH command complete: ${data}`);
                         });
                     });
                 }).on('error', (error) => {
@@ -539,8 +615,7 @@ const _sshCreateUser = (targetHost, targetPort, targetUsername, targetSshKey) =>
                     username: targetUsername,
                     privateKey: privateKey
                 });
-            })
-            .catch((error) => {
+            }).catch((error) => {
                 reject(error);
             });
     });
@@ -556,7 +631,7 @@ const cleanDevices = () => {
                 if (device.available && (
                     device.targetHost in global.needCleaning ||
                     device.targetUUID in global.needCleaning
-                    )) {
+                )) {
                     deviceCleanPromises.push(_deleteUser(device))
                         .catch((error) => {
                             logger.error(`${LOG_PRE} - error deleting service user on ${device.targetHost} - ${error}`);
@@ -583,9 +658,9 @@ const monitorDevices = () => {
             devices.forEach((device) => {
                 monitorPromises.push(pingRemoteDevice(device.targetUUID))
                     .then((deviceUp) => {
-                        if(deviceUp) {
-                            if(device.targetHost in Object.keys(global.downDevices)) {
-                                delete(global.downDevices[device.targetHost]);
+                        if (deviceUp) {
+                            if (device.targetHost in Object.keys(global.downDevices)) {
+                                delete (global.downDevices[device.targetHost]);
                             }
                         } else {
                             global.downDevices[device.targetHost] = 1;
@@ -593,7 +668,7 @@ const monitorDevices = () => {
                     });
             });
             Promise.all(monitorPromises);
-                logger.debug(`${LOG_PRE} - monitor run on ${monitorPromises.length} device(s) completed`);
+            logger.debug(`${LOG_PRE} - monitor run on ${monitorPromises.length} device(s) completed`);
         })
         .catch((error) => {
             logger.error(`${LOG_PRE} - error monitoring devices`);
@@ -646,20 +721,17 @@ const addDevices = (targets) => {
     return new Promise((resolve, reject) => {
         const addDevicePromises = [];
         targets.forEach((target) => {
-            if (target.hasOwnProperty('targetSshKey')) {
-                addDevicePromises.push(
-                    _sshCreateUser(target.targetHost, target.targetPort, target.targetUsername, target.targetSshKey)
-                        .then((targetUsername, targetPassphrase, targetPort) => {
-                            addDevicePromises.push(
-                                addDevice(target.targetHost, targetPort, targetUsername, targetPassphrase)
-                            );
-                        })
-                );
-            } else {
-                addDevicePromises.push(
-                    addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase)
-                );
-            }
+            addDevicePromises.push(
+                _resolveTarget(target)
+                    .then(
+                        (target) => {
+                            return addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase)
+                        }
+                    )
+                    .then(() => {
+                        logger.info(`${LOG_PRE} - device ${target.targetHost}:${target.targetPort} added`);
+                    })
+            );
         });
         Promise.all(addDevicePromises)
             .then(() => {
@@ -725,18 +797,25 @@ const deleteDevices = (devices) => {
 const deleteDevice = (device) => {
     return new Promise((resolve, reject) => {
         let foundDeviceGroup = '';
-        logger.debug(`${LOG_PRE} - deleting targetUUID: ${device.targetUUID} from cache`);
-        delete (targetCache[device.targetUUID]);
+        if(device.targetUUID) {
+            logger.debug(`${LOG_PRE} - deleting targetUUID: ${device.targetUUID} from cache`);
+            delete (targetCache[device.targetUUID]);
+        }
         _findDeviceGroupWithDevice(device)
             .then((deviceGroup) => {
                 foundDeviceGroup = deviceGroup;
-                return _deleteLocalCertificateOnRemote(device)
-                    .then(() => {
-                        return Promise.resolve();
-                    })
-                    .catch((error) => {
-                        return Promise.resolve();
-                    });
+                if(device.targetUUID && ! _inProgress(device.state)) {
+                    return _deleteLocalCertificateOnRemote(device)
+                        .then(() => {
+                            return Promise.resolve();
+                        })
+                        .catch((error) => {
+                            return Promise.resolve();
+                        });                    
+                } else {
+                    logger.error(`deleting device in state ${device.state}`);
+                    return Promise.resolve();
+                }
             })
             .then(() => {
                 return _deleteCertificateByDevice(device)
@@ -773,12 +852,13 @@ const declareDevices = (desiredDevices) => {
         // create comparison collections
         const desiredDeviceDict = {};
         const existingDeviceDict = {};
-        // populate desired ollection with targetHost:targetPort keys
+        // populate desired collection with targetHost:targetPort keys
         desiredDevices.forEach((device) => {
-            if (!device.hasOwnProperty('targetPort')) {
-                device.targetPort = 443;
+            if (device.hasOwnProperty('targetPort')) {
+                desiredDeviceDict[`${device.targetHost}:${device.targetPort}`] = device;
+            } else {
+                desiredDeviceDict[`${device.targetHost}:${DEFAULT_HTTPS_PORT}`] = device;
             }
-            desiredDeviceDict[`${device.targetHost}:${device.targetPort}`] = device;
         });
         // populate existing collection with targetHost:targetPort keys
         let existingDevices = [];
@@ -791,41 +871,20 @@ const declareDevices = (desiredDevices) => {
                         if (device in existingDeviceDict) {
                             if (existingDeviceDict[device].state === ACTIVE || _inProgress(existingDeviceDict[device].state)) {
                                 // Device is desired, exists already, and is active or in progress. Don't remove it.
-                                existingDevices = existingDevices.filter(t => `${device.targetHost}:${device.targetPort}` !== device); // jshint ignore:line
+                                existingDevices = existingDevices.filter(t => `${existingDeviceDict[device].targetHost}:${existingDeviceDict[device].targetPort}` !== device); // jshint ignore:line
                                 // Device is desired, exists already, and is active or in progress. Don't add it.
-                                desiredDevices = desiredDevices.filter(t => `${device.targetHost}:${device.targetPort}` !== device); // jshint ignore:line
+                                desiredDevices = desiredDevices.filter(t => `${existingDeviceDict[device].targetHost}:${existingDeviceDict[device].targetPort}` !== device); // jshint ignore:line
                             } else {
                                 if (
-                                    (
-                                        !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
-                                        !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')
-                                    ) ||
-                                    (
-                                        !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
-                                        !desiredDeviceDict[device].hasOwnProperty('targetSshKey')
-                                    )
-                                ) {
+                                    !desiredDeviceDict[device].hasOwnProperty('targetSshKey') &&
+                                    !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')
+                                )  
+                                {
                                     const err = new Error();
                                     err.statusCode = 400;
-                                    err.message = 'declared device missing targetUsername, targetPassphrase, or targetSshKey';
+                                    err.message = 'declared device missing either targetPassphrase or targetSshKey';
                                     throw err;
                                 }
-                            }
-                        } else {
-                            if (
-                                (
-                                    !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
-                                    !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')
-                                ) ||
-                                (
-                                    !desiredDeviceDict[device].hasOwnProperty('targetUsername') &&
-                                    !desiredDeviceDict[device].hasOwnProperty('targetSshKey')
-                                )
-                            ) {
-                                const err = new Error();
-                                err.statusCode = 400;
-                                err.message = 'declared device missing targetUsername, targetPassphrase, or targetSshKey';
-                                throw err;
                             }
                         }
                     }
@@ -1059,9 +1118,9 @@ const _getTrustedDevicesInGroup = (deviceGroup) => {
             .then((devices) => {
                 const returnDevices = [];
                 devices.forEach((device) => {
-                    if (device.machineId != machineId) {
+                    if (device.uuid != machineId) {
                         const targetDevice = {
-                            targetUUID: device.machineId,
+                            targetUUID: device.uuid,
                             targetHost: device.address,
                             targetPort: device.httpsPort,
                             state: device.state,
@@ -1517,7 +1576,8 @@ const _queryServicePassword = () => {
             resolve(global.servicePassword);
         } else {
             global.servicePassword = Math.random().toString(36).slice(-8) + 'tD0' + Math.random().toString(36).slice(-8);
-            resolve(global.serviceUsername);
+            logger.info(`${LOG_PRE} - generated service account password for this gateway`);
+            resolve(global.servicePassword);
         }
     });
 };
@@ -1531,6 +1591,7 @@ const _queryServiceUsername = () => {
             _queryMachineId()
                 .then((machineId) => {
                     global.serviceUsername = INJECTED_USERNAME_PREFIX + machineId.slice(-12);
+                    logger.info(`${LOG_PRE} - service account user for this gateway is ${global.serviceUserName}`);
                     resolve(global.serviceUsername);
                 })
                 .catch((error) => {
