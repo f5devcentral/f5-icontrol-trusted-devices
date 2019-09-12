@@ -779,8 +779,8 @@ const addDevices = (targets) => {
                             return addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase);
                         }
                     )
-                    .then(() => {
-                        logger.info(`${LOG_PRE} - device ${target.targetHost}:${target.targetPort} added`);
+                    .then((device) => {
+                        logger.info(`${LOG_PRE} - device ${device.targetHost}:${device.targetPort} added`);
                     })
             );
         });
