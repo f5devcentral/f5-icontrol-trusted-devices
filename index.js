@@ -6,7 +6,6 @@
 
 const http = require('http');
 const logger = require('./utils/logger');
-const devices = require('./utils/devices');
 const port = process.env.PORT || '3000';
 const app = require('./app');
 const tasks = require('./tasks');
