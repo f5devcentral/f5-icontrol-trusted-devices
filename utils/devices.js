@@ -505,13 +505,13 @@ const _deleteServiceUsers = (device) => {
         _getServiceUsers(device)
             .then((users) => {
                 users.forEach((user) => {
-                    logger.debug(`${LOG_PRE} - removing service user account ${user} from ${device.targetHost}`);
+                    logger.debug(`${LOG_PRE} - removing service user account ${user} from ${device.targetHost}:${device.targetPort}`);
                     _deleteRemoteUser(device, user)
                         .then(() => {
                             global.hostsToClean.splice(global.hostsToClean.indexOf(device), 1);
                         })
                         .catch((error) => {
-                            logger.error(`${LOG_PRE} - error removing ${user} from ${device.targetHost} - ${error}`);
+                            logger.error(`${LOG_PRE} - error removing ${user} from ${device.targetHost}:${device.targetPort} - ${error}`);
                         });
                 });
             });
@@ -681,7 +681,7 @@ const cleanDevices = () => {
                         global.hostsToClean.includes(device.targetUUID)
                     )
                 ) {
-                    logger.debug(`${LOG_PRE} - device ${device.targetHost} needs cleaning`);
+                    logger.debug(`${LOG_PRE} - device ${device.targetHost}:${device.targetPort} needs cleaning`);
                     _deleteServiceUsers(device)
                         .catch((error) => {
                             logger.error(`${LOG_PRE} - error cleaning devices - ${error}`);
@@ -704,7 +704,7 @@ const monitorDevices = () => {
                     .then((deviceUp) => {
                         if (deviceUp) {
                             if (global.downDevices.hasOwnProperty(device.targetHost)) {
-                                logger.error(`${LOG_PRE} - marking device ${device.targetHost} up`);
+                                logger.error(`${LOG_PRE} - marking device ${device.targetHost}:${device.targetPort} up`);
                                 delete (global.downDevices[device.targetHost]);
                                 console.log(JSON.stringify(global.downDevices));
                             }
@@ -712,13 +712,13 @@ const monitorDevices = () => {
                             if (global.downDevices.hasOwnProperty(device.targetHost)) {
                                 global.downDevices[device.targetHost] += 1; 
                             } else {
-                                logger.error(`${LOG_PRE} - marking device ${device.targetHost} down`);
+                                logger.error(`${LOG_PRE} - marking device ${device.targetHost}:${device.targetPort} down`);
                                 global.downDevices[device.targetHost] = 1;
                             }
                         }
                     })
                     .catch((error) => {
-                        logger.error(`${LOG_PRE} - error running device monitor on ${device.targetHost} - ${error}`);
+                        logger.error(`${LOG_PRE} - error running device monitor on ${device.targetHost}:${device.targetPort} - ${error}`);
                     });
             });
         })
@@ -1716,7 +1716,7 @@ const _queryRemoteUsers = (device) => {
                 options.port = device.targetPort;
                 options.path = `${usersPath}?${token.queryParam}`;
                 let body = '';
-                logger.debug(`${LOG_PRE} - querying users ${options.path}`);
+                logger.debug(`${LOG_PRE} - querying users ${device.targetHost}:${device.targetPort}`);
                 const request = https.request(options, (res) => {
                     res.on('data', (seg) => {
                         body += seg;
@@ -1766,7 +1766,7 @@ const _deleteRemoteUser = (device, username) => {
                 options.path = `${usersPath}/${username}?${token.queryParam}`;
                 options.method = 'DELETE';
                 let body = '';
-                logger.debug(`${LOG_PRE} - delete user ${username} on ${device.targetHost}`);
+                logger.debug(`${LOG_PRE} - delete user ${username} on ${device.targetHost}:${device.targetPort}`);
                 const request = https.request(options, (res) => {
                     res.on('data', (seg) => {
                         body += seg;
