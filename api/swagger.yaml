@@ -911,7 +911,6 @@ components:
           type: string
       example:
         targetHost: 172.13.1.103
-        targetPort: 22
         targetSshKey: /sshkeys/id_rsa
     DeclaredDevices:
       type: object
