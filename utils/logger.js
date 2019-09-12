@@ -5,7 +5,7 @@ const _ = require('lodash');
 
 const _makeLogFunction = (color, level) => {
     return function (msg) {
-        console.log(('[' + level + ']')[color] + ' ' + new Date().toString().grey + ' ' + msg + ' ');
+        console.log(('[' + level + ']')[color] + ' ' + new Date().toISOString().grey + ' ' + msg + ' ');
     };
 };
 
@@ -18,7 +18,7 @@ let logger = {
 logger.addLevels({
     debug: 'grey',
     info: 'blue',
-    warn: 'orange',
+    warn: 'magenta',
     error: 'red',
     severe: 'yellow'
 });

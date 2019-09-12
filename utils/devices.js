@@ -704,7 +704,7 @@ const monitorDevices = () => {
                     .then((deviceUp) => {
                         if (deviceUp) {
                             if (global.downDevices.hasOwnProperty(device.targetHost)) {
-                                logger.error(`${LOG_PRE} - marking device ${device.targetHost}:${device.targetPort} up`);
+                                logger.info(`${LOG_PRE} - marking device ${device.targetHost}:${device.targetPort} up`);
                                 delete (global.downDevices[device.targetHost]);
                                 console.log(JSON.stringify(global.downDevices));
                             }
@@ -712,7 +712,7 @@ const monitorDevices = () => {
                             if (global.downDevices.hasOwnProperty(device.targetHost)) {
                                 global.downDevices[device.targetHost] += 1; 
                             } else {
-                                logger.error(`${LOG_PRE} - marking device ${device.targetHost}:${device.targetPort} down`);
+                                logger.warn(`${LOG_PRE} - marking device ${device.targetHost}:${device.targetPort} down`);
                                 global.downDevices[device.targetHost] = 1;
                             }
                         }
@@ -1352,7 +1352,17 @@ const _createDevice = (deviceGroup, targetHost, targetPort,
             res.on('end', () => {
                 try {
                     _handleErrors(res, body);
-                    resolve(JSON.parse(body));
+                    const device = JSON.parse(body);
+                    resolve(
+                        {
+                            targetHost: device.address,
+                            targetPort: device.httpsPort,
+                            targetUUID: device.uuid,
+                            state: device.state,
+                            available: false,
+                            failedMonitors: 0
+                        }
+                    );
                 } catch (ex) {
                     logger.error(`${LOG_PRE} - exception creating device ${ex}`);
                     reject(ex);
@@ -1522,7 +1532,7 @@ const _deleteCertificate = (certificateId) => {
                 }
             });
             res.on('error', (error) => {
-                logger.debug(`${LOG_PRE} - error deleting certificates ${error}`);
+                logger.error(`${LOG_PRE} - error deleting certificates ${error}`);
                 reject(error);
             });
         });
