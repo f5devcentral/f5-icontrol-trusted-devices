@@ -894,7 +894,6 @@ components:
       type: object
       required:
         - targetHost
-        - targetPort
         - targetSshKey
       properties:
         targetHost:
@@ -937,6 +936,9 @@ components:
         available:
           description: If the device trust is currently available
           type: boolean
+        failedMonitors:
+          description: The number of concurrent failed iControl REST monitoring attempts
+          type: number
       example:
         targetUUID: 7390b3b8-7682-4554-83e5-764e4f26703c
         targetHost: 172.13.1.103
@@ -946,6 +948,7 @@ components:
         targetVersion: 13.1.1
         targetRESTVersion: 13.1.1-0.0.4
         available: true
+        failedMonitors: 0
     DeviceToken:
       type: object
       properties:

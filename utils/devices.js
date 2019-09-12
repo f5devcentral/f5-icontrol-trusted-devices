@@ -187,6 +187,7 @@ const pingRemoteDevice = (targetUUID) => {
                 options.host = foundDevice.targetHost;
                 options.port = foundDevice.targetPort;
                 options.path = `${pingPath}?${token.queryParam}`;
+                options.headers.Connection = 'close';
                 https.request(options, (res) => {
                     let body = '';
                     res.on('data', (seg) => {
@@ -195,17 +196,25 @@ const pingRemoteDevice = (targetUUID) => {
                     res.on('end', () => {
                         try {
                             _handleErrors(res, body);
-                            if (JSON.parse(body).stage == STARTED) {
+                            const stage = JSON.parse(body).stage;
+                            logger.debug(`${LOG_PRE} - iControl REST pinging ${foundDevice.targetHost} - ${res.statusCode} - response stage: ${stage}`);
+                            if (stage == STARTED) {
                                 resolve(true);
+                            } else; {
+                                resolve(false);
                             }
                         } catch (ex) {
                             resolve(false);
                         }
                     });
                     res.on('error', () => {
+                        logger.debug(`${LOG_PRE} - iControl REST pinging ${foundDevice.targetHost} - ${res.statusCode}`);
                         resolve(false);
                     });
-                });
+                }).on('error', (error) => {
+                    logger.error(`${LOG_PRE} - error making https://${foundDevice.targetHost}:${foundDevice.targetPort} request - ${error}`);
+                    resolve(false);
+                }).end();
             })
             .catch((error) => {
                 if (!foundDevice) {
@@ -352,10 +361,10 @@ const _fetchToken = (targetHost) => {
 const _resolveTarget = (target) => {
     return new Promise((resolve, reject) => {
         if (target.hasOwnProperty('targetSshKey')) {
-            if(!target.hasOwnProperty('targetPort')) {
+            if (!target.hasOwnProperty('targetPort')) {
                 target.targetPort = DEFAULT_SSH_PORT;
             }
-            if(!target.hasOwnProperty('targetUsername')) {
+            if (!target.hasOwnProperty('targetUsername')) {
                 target.targetUsername = DEFAULT_SSH_USERNAME;
             }
             _sshResolveTarget(target.targetHost, target.targetPort, target.targetUsername, target.targetSshKey)
@@ -367,10 +376,10 @@ const _resolveTarget = (target) => {
                     reject(error);
                 });
         } else {
-            if(!target.hasOwnProperty('targetPort')) {
+            if (!target.hasOwnProperty('targetPort')) {
                 target.targetPort = DEFAULT_HTTPS_PORT;
             }
-            if(!target.hasOwnProperty('targetUsername')) {
+            if (!target.hasOwnProperty('targetUsername')) {
                 target.targetUsername = DEFAULT_HTTPS_USERNAME;
             }
             resolve(target);
@@ -390,6 +399,25 @@ const _userExists = (device, username) => {
                     }
                 });
                 resolve(foundUser);
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+};
+
+
+const _getServiceUsers = (device) => {
+    return new Promise((resolve, reject) => {
+        _queryRemoteUsers(device)
+            .then((users) => {
+                const returnUsers = [];
+                users.forEach((user) => {
+                    if (user.startsWith(INJECTED_USERNAME_PREFIX)) {
+                        returnUsers.push(user);
+                    }
+                });
+                resolve(returnUsers);
             })
             .catch((error) => {
                 reject(error);
@@ -472,6 +500,25 @@ const _deleteUser = (device) => {
 };
 
 
+const _deleteServiceUsers = (device) => {
+    return new Promise((resolve, reject) => {
+        _getServiceUsers(device)
+            .then((users) => {
+                users.forEach((user) => {
+                    logger.debug(`${LOG_PRE} - removing service user account ${user} from ${device.targetHost}`);
+                    _deleteRemoteUser(device, user)
+                        .then(() => {
+                            global.hostsToClean.splice(global.hostsToClean.indexOf(device), 1);
+                        })
+                        .catch((error) => {
+                            logger.error(`${LOG_PRE} - error removing ${user} from ${device.targetHost} - ${error}`);
+                        });
+                });
+            });
+    });
+};
+
+
 const _sshDeleteUser = (targetHost, targetPort, targetUsername, targetSshKey) => {
     return new Promise((resolve, reject) => {
         let serviceUserName = null;
@@ -543,7 +590,7 @@ const _getHttpsPort = (targetHost, targetPort, targetUsername, targetSshKey) => 
                 }).on('data', function (data) {
                     httpsPort = parseInt(data);
                 });
-            })
+            });
         }).on('error', (error) => {
             logger.error(`${LOG_PRE} - SSH query of users error: ${error}`);
             reject(error);
@@ -623,56 +670,60 @@ const _sshResolveTarget = (targetHost, targetPort, targetUsername, targetSshKey)
 
 
 const cleanDevices = () => {
-    const needCleaning = [];
+    logger.debug(`${LOG_PRE} - running clean devices for hosts: ${JSON.stringify(global.hostsToClean)}`);
     getTrustedDevices()
         .then((devices) => {
-            const deviceCleanPromises = [];
             devices.forEach((device) => {
-                if (device.available && (
-                    device.targetHost in global.needCleaning ||
-                    device.targetUUID in global.needCleaning
-                )) {
-                    deviceCleanPromises.push(_deleteUser(device))
+                if (
+                    device.available &&
+                    (
+                        global.hostsToClean.includes(device.targetHost) ||
+                        global.hostsToClean.includes(device.targetUUID)
+                    )
+                ) {
+                    logger.debug(`${LOG_PRE} - device ${device.targetHost} needs cleaning`);
+                    _deleteServiceUsers(device)
                         .catch((error) => {
-                            logger.error(`${LOG_PRE} - error deleting service user on ${device.targetHost} - ${error}`);
-                            needCleaning.push(device.targetHost);
+                            logger.error(`${LOG_PRE} - error cleaning devices - ${error}`);
                         });
                 }
             });
-            Promise.all(deviceCleanPromises)
-                .then(() => {
-                    global.needCleaning = needCleaning;
-                });
         })
         .catch((error) => {
-            logger.error(`${LOG_PRE} - error cleaning devices`);
-
+            logger.error(`${LOG_PRE} - error cleaning devices - ${error}`);
         });
 };
 
 
 const monitorDevices = () => {
+    logger.debug(`${LOG_PRE} - running monitor devices`);
     getTrustedDevices()
         .then((devices) => {
-            const monitorPromises = [];
             devices.forEach((device) => {
-                monitorPromises.push(pingRemoteDevice(device.targetUUID))
+                pingRemoteDevice(device.targetUUID)
                     .then((deviceUp) => {
                         if (deviceUp) {
-                            if (device.targetHost in Object.keys(global.downDevices)) {
+                            if (global.downDevices.hasOwnProperty(device.targetHost)) {
+                                logger.error(`${LOG_PRE} - marking device ${device.targetHost} up`);
                                 delete (global.downDevices[device.targetHost]);
+                                console.log(JSON.stringify(global.downDevices));
                             }
                         } else {
-                            global.downDevices[device.targetHost] = 1;
+                            if (global.downDevices.hasOwnProperty(device.targetHost)) {
+                                global.downDevices[device.targetHost] += 1; 
+                            } else {
+                                logger.error(`${LOG_PRE} - marking device ${device.targetHost} down`);
+                                global.downDevices[device.targetHost] = 1;
+                            }
                         }
+                    })
+                    .catch((error) => {
+                        logger.error(`${LOG_PRE} - error running device monitor on ${device.targetHost} - ${error}`);
                     });
             });
-            Promise.all(monitorPromises);
-            logger.debug(`${LOG_PRE} - monitor run on ${monitorPromises.length} device(s) completed`);
         })
         .catch((error) => {
-            logger.error(`${LOG_PRE} - error monitoring devices`);
-
+            logger.error(`${LOG_PRE} - error monitoring devices - ${error}`);
         });
 };
 
@@ -725,7 +776,7 @@ const addDevices = (targets) => {
                 _resolveTarget(target)
                     .then(
                         (target) => {
-                            return addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase)
+                            return addDevice(target.targetHost, target.targetPort, target.targetUsername, target.targetPassphrase);
                         }
                     )
                     .then(() => {
@@ -797,21 +848,21 @@ const deleteDevices = (devices) => {
 const deleteDevice = (device) => {
     return new Promise((resolve, reject) => {
         let foundDeviceGroup = '';
-        if(device.targetUUID) {
+        if (device.targetUUID) {
             logger.debug(`${LOG_PRE} - deleting targetUUID: ${device.targetUUID} from cache`);
             delete (targetCache[device.targetUUID]);
         }
         _findDeviceGroupWithDevice(device)
             .then((deviceGroup) => {
                 foundDeviceGroup = deviceGroup;
-                if(device.targetUUID && ! _inProgress(device.state)) {
+                if (device.targetUUID && !_inProgress(device.state)) {
                     return _deleteLocalCertificateOnRemote(device)
                         .then(() => {
                             return Promise.resolve();
                         })
                         .catch((error) => {
                             return Promise.resolve();
-                        });                    
+                        });
                 } else {
                     logger.error(`deleting device in state ${device.state}`);
                     return Promise.resolve();
@@ -878,8 +929,7 @@ const declareDevices = (desiredDevices) => {
                                 if (
                                     !desiredDeviceDict[device].hasOwnProperty('targetSshKey') &&
                                     !desiredDeviceDict[device].hasOwnProperty('targetPassphrase')
-                                )  
-                                {
+                                ) {
                                     const err = new Error();
                                     err.statusCode = 400;
                                     err.message = 'declared device missing either targetPassphrase or targetSshKey';
@@ -1132,10 +1182,15 @@ const _getTrustedDevicesInGroup = (deviceGroup) => {
                             targetDevice.available = false;
                         } else if (_inFailed(device.state)) {
                             targetDevice.available = false;
-                        } else if (device.address in Object.keys(global.downDevices)) {
+                        } else if (global.downDevices.hasOwnProperty(device.address)) {
                             targetDevice.available = false;
                         } else {
                             targetDevice.available = true;
+                        }
+                        if (global.downDevices.hasOwnProperty(device.address)) {
+                            targetDevice.failedMonitors = global.downDevices[device.address];
+                        } else {
+                            targetDevice.failedMonitors = 0;
                         }
                         returnDevices.push(targetDevice);
                     }
@@ -1662,7 +1717,7 @@ const _queryRemoteUsers = (device) => {
                 options.path = `${usersPath}?${token.queryParam}`;
                 let body = '';
                 logger.debug(`${LOG_PRE} - querying users ${options.path}`);
-                const request = http.request(options, (res) => {
+                const request = https.request(options, (res) => {
                     res.on('data', (seg) => {
                         body += seg;
                     });
@@ -1711,8 +1766,8 @@ const _deleteRemoteUser = (device, username) => {
                 options.path = `${usersPath}/${username}?${token.queryParam}`;
                 options.method = 'DELETE';
                 let body = '';
-                logger.debug(`${LOG_PRE} - delete user ${options.path}`);
-                const request = http.request(options, (res) => {
+                logger.debug(`${LOG_PRE} - delete user ${username} on ${device.targetHost}`);
+                const request = https.request(options, (res) => {
                     res.on('data', (seg) => {
                         body += seg;
                     });
