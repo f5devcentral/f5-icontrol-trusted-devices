@@ -30,4 +30,4 @@ To view the Swagger UI interface:
 open http://localhost:3000/TrustedDevicesUI
 ```
 
-![TrustedDevicesSwaggerUI](./resources/TrustedDevicesSwaggerApp.png)
+![TrustedDevicesSwaggerUI](./static/images/TrustedDevicesSwaggerApp.png)
