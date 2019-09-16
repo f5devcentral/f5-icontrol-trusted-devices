@@ -66,14 +66,13 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   // Serve up our Schema in JSON format for swagger-ui
   app.use(`${SWAGGERUI_PREFIX}/api-docs`, serveStatic(path.join(__dirname, './api'), { 'index': ['swagger.json'] }));
 
-  // Replace the static index.html form 'swagger-ui-dist' with patched content 
-  // pointing to our relative URI for our schema JSON file
-  app.use(`${SWAGGERUI_PREFIX}/docs/index.html`, (req, res) => {
-    res.write(swaggerUIIndex(`${SWAGGERUI_PREFIX}/api-docs/swagger.json`));
-    res.end();
-  });
+  // Replace the static index.html form 'swagger-ui-dist' with our API index
+  app.use(`${SWAGGERUI_PREFIX}/docs/index.html`, serveStatic(path.join(__dirname, './static/index.html')));
+  app.use(`${SWAGGERUI_PREFIX}/static`, serveStatic(path.join(__dirname, './static')));
+
   // Serve up swagger-ui content
   app.use(`${SWAGGERUI_PREFIX}/docs`, serveStatic(pathToSwaggerUi, { 'index': ['index.html'] }));
+  app.use(`${SWAGGERUI_PREFIX}/static`, serveStatic(path.join(__dirname, './static')));
 
   // Create a HTTP redirect from /docs to our patched index.html
   app.use(`${SWAGGERUI_PREFIX}/`, (req, res) => {
@@ -90,17 +89,5 @@ oas3Tools.initializeMiddleware(swaggerDoc, function (middleware) {
   });
 
 });
-
-/** 
- * 
- * Hot patch the index.html from swagger-ui-dist to our shcema index
- *  
-*/
-const swaggerUIIndex = (indexUri) => {
-  const indexContent = fs.readFileSync(`${pathToSwaggerUi}/index.html`)
-    .toString()
-    .replace(/url:(.*)?/, 'url: "' + indexUri + '",');
-  return indexContent;
-};
 
 module.exports = app;
