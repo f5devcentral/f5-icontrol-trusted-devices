@@ -1,0 +1,630 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Proxying iControl REST Requests to Trusted Devices",
+        "description": "
+            <a href=\"/TrustedDevicesUI/docs/index.html\" alt=\"Load Tutorial\" class=\"link\">Return to Full Specification</a></br>    
+            <p> 
+            Because the <span style='font-family: monospace; font-weight: bold;'>TrustedProxy</span> service has access to device tokens
+            for each trusted devices, it can be used to take iControl REST requests, augment the query parameters with a token, and 
+            then proxy the request to a remote trusted device.
+            </p>
+            <p>
+            To perform that service <span style='font-family: monospace; font-weight: bold;'>TrustedProxy</span> will need
+            to know which trusted device, as identified by its <span style='font-family: monospace; font-weight: bold;'>targetUUID</span>
+            property, and which iControl REST service method and endpoint is being requested. In order to faithfully reproduce any request
+            and response headers required by the request, path elements are used to specify the desired <span style='font-family: monospace; font-weight: bold;'>targetUUID</span>
+            and iControl REST service endpoint. All request headers are faithfully sent to the remote trusted device with the request.
+            </p>
+            <p>
+            Any iControl REST request to a trusted device can be proxied through the <span style='font-family: monospace; font-weight: bold;'>TrustedProxy</span> service
+            by using the desired iControl REST method and request headers against the <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy/proxy</span> 
+            service endpoint. You will need to include the <span style='font-family: monospace; font-weight: bold;'>targetUUID</span> and the desired 
+            iControl REST service endpoint as additional path elements.
+            </p>
+            <p>
+            As an example, if we desire to proxy a call to trusted device with <span style='font-family: monospace; font-weight: bold;'>targetUUID</span>
+            <span style='font-family: monospace;'>7390b3b8-7682-4554-83e5-764e4f26703c</span> echo iControl endpoint we would send the request to the 
+            <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy/proxy</span> endpoint as follows. Normally we would need to 
+            authenticate and authorize the iControl REST request to the remote device and then issue a <span style='font-family: monospace; font-weight: bold;'>GET</span> request
+            to the <span style='font-family: monospace;  font-weight: bold;'>/mgmt/shared/echo</span> remote endpoint. To perform this same request with the 
+            <span style='font-family: monospace; font-weight: bold;'>TrustedProxy</span> service handling the request authorization, the following request is issued:
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedProxy/proxy/7390b3b8-7682-4554-83e5-764e4f26703c/mgmt/shared/echo</span>
+            </p>
+            <p>
+            The results would be proxied back, faithfully responding, with the status code, response headers, and content from the remote trusted device.
+            </p>
+            <p>
+            All iControl REST methods, <span style='font-family: monospace; font-weight: bold;'>GET</span>, <span style='font-family: monospace; font-weight: bold;'>PATCH</span>,
+            <span style='font-family: monospace; font-weight: bold;'>POST</span>, <span style='font-family: monospace; font-weight: bold;'>PUT</span>, and 
+            <span style='font-family: monospace; font-weight: bold;'>DELETE</span> are supported by the <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy/proxy</span> endpoint.
+            This provides a powerful way to separate the concerns of TMOS automation request authorization and stop the proliferation of stored passwords in orchestration applications.
+            </p>
+            "
+            ,
+        "contact": {
+            "email": "support@f5.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        },
+        {
+            "url": "https://localhost:8443/"
+        },
+        {
+            "url": "https://{host}:{port}/",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "The host to issue requests"
+                },
+                "port": {
+                    "default": "443",
+                    "description": "The host port to issue requests"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "BasicAuth": []
+        },
+        {
+            "BearerAuth": []
+        },
+        {
+            "ApiKeyAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Proxy Services",
+            "description": "Proxy iControl REST requests or get trusted tokens for trusted TMOS devices"
+        }
+    ],
+    "paths": {
+        "/TrustedProxy/proxy/{targetUUID}/{iControlRESTPath}*": {
+            "get": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "proxy a GET iControl REST API request to a trusted Host",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "getiControlRESTProxy",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "iControlRESTPath",
+                        "in": "path",
+                        "description": "The iControl REST API path on the remote trusted device",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "iControl REST API response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-swagger-router-controller": "TrustedProxyController"
+            },
+            "patch": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "proxy a PATCH iControl REST API request to a trusted Host",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "patchiControlRESTProxy",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "iControlRESTPath",
+                        "in": "path",
+                        "description": "The iControl REST API path on the remote trusted device",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "the iControl REST request body",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SampleRequestBody"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "iControl REST API response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-swagger-router-controller": "TrustedProxyController"
+            },
+            "post": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "proxy an iControl REST API request to a trusted Host",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "postiControlRESTProxy",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "iControlRESTPath",
+                        "in": "path",
+                        "description": "The iControl REST API path on the remote trusted device",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "the iControl REST request body",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SampleRequestBody"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "iControl REST API response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-swagger-router-controller": "TrustedProxyController"
+            },
+            "put": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "proxy an iControl REST API request to a trusted Host",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "putiControlRESTProxy",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "iControlRESTPath",
+                        "in": "path",
+                        "description": "The iControl REST API path on the remote trusted device",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "the iControl REST request body",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SampleRequestBody"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "iControl REST API response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-swagger-router-controller": "TrustedProxyController"
+            },
+            "delete": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "proxy an iControl REST API request to a trusted Host",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "deleteiControlRESTProxy",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "iControlRESTPath",
+                        "in": "path",
+                        "description": "The iControl REST API path on the remote trusted device",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "iControl REST API response",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedProxyController"
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key"
+            }
+        },
+        "schemas": {
+            "SampleRequestBody": {
+                "type": "object",
+                "additionalProperties": true,
+                "example": {}
+            },
+            "uuid": {
+                "type": "string",
+                "description": "UUID4 Id string",
+                "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+            }
+        }
+    }
+}

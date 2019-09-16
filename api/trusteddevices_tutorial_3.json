@@ -1,0 +1,368 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Adding Trusts - Imperatively Add Trusted Devices",
+        "description": "
+            <a href=\"/TrustedDevicesUI/docs/index.html\" alt=\"Load Tutorial\" class=\"link\">Return to Full Specification</a></br>    
+            <p>
+            You can add devices to trust with <span style='font-family: monospace; font-weight: bold;'>PUT</span> 
+            requests to the <span style='font-family: monospace; font-weight: bold;'>/TrustedDevices</span> endpoint. Any
+            devices you define in your request will be added to any existing trusts, rather than declaratively overwriting them.
+            </p>
+            <p>
+            To establish trusts you must specify the <span style='font-family: monospace; font-weight: bold;'>targetHost</span>
+            property indicating the management address of each device to establish trust.
+            </p>
+            <p>
+            In addition to the <span style='font-family: monospace; font-weight: bold;'>targetHost</span> property, you must also
+            specify a method to authorize the trust establishment. This API support two methods to authorize the request.
+            </p>
+            <h3>Establishing Trust with SSH Key Authorization</h3>
+            <p>
+            To establish trust with SSH, you must specify the <span style='font-family: monospace; font-weight: bold;'>targetSshKey</span> property.
+            The <span style='font-family: monospace; font-weight: bold;'>targetSshKey</span> property specifies the file path local to the API service which specifies
+            contains an SSH key which is authorized on the remote TMOS device. The SSH key file must be readable by the user running the service. In 
+            the <span style='font-family: monospace;'>f5-icontrol-gateway</span> container, the service is run as the 
+            <span style='font-family: monospace;'>nginx</span> user.
+            </p>
+            <p>
+            In addition, you can specify <span style='font-family: monospace; font-weight: bold;'>targetUsername</span> and 
+            <span style='font-family: monospace; font-weight: bold;'>targetPort</span> properties if the SSH account requires
+            a user other then the TMOS default <span style='font-family: monospace;'>root</span> user or is reachable on 
+            an alternative port other than the TMOS default <span style='font-family: monospace;'>22</span>.
+            </p>
+            <p>
+            <span style='font-family: monospace;'>
+            PUT /TrustedDevices
+            <br/>
+            <br/>
+            [<br/>
+                &nbsp;&nbsp;{</br>
+                &nbsp;&nbsp;&nbsp;&nbsp;\"targetHost\": \"172.13.1.103\",</br>
+                &nbsp;&nbsp;&nbsp;&nbsp;\"targetSshKey\": \"/sskkeys/id_rsa\",</br>
+                &nbsp;&nbsp;}</br>
+            ]
+            </span>
+            </p>
+            <h3>Establishing Trust with HTTPS Username and Password</h3>
+            <p>
+            To establish trust with HTTPS, you must specify both <span style='font-family: monospace; font-weight: bold;'>targetUsername</span> 
+            and <span style='font-family: monospace; font-weight: bold;'>targetPassphrase</span> properties. The 
+            <span style='font-family: monospace; font-weight: bold;'>targetUsername</span> property specifies a TMOS username which has
+            Administrative role on the remote TMOS devices. The <span style='font-family: monospace; font-weight: bold;'>targetPassphrase</span> property 
+            specifies the password for the specified user. 
+            </p>
+            <p>
+            The specified credentials will be used to establish the device trust only. They are not presisted.
+            </p>
+            <p>
+            In addition, you can specify <span style='font-family: monospace; font-weight: bold;'>targetPort</span> property
+            if the TMOS iControl REST services are listening on an alternative port other than the TMOS default <span style='font-family: monospace;'>443</span>.
+            </p>
+            <p>
+            <span style='font-family: monospace;'>
+            PUT /TrustedDevices
+            <br/>
+            <br/>
+            [<br/>
+                &nbsp;&nbsp;{</br>
+                &nbsp;&nbsp;&nbsp;&nbsp;\"targetHost\": \"172.13.1.103\",</br>
+                &nbsp;&nbsp;&nbsp;&nbsp;\"targetUsername\": \"admin\",</br>
+                &nbsp;&nbsp;&nbsp;&nbsp;\"targetPassphrase\": \"admin\",</br>
+                &nbsp;&nbsp;}</br>
+            ]
+            </span>
+            </p>
+            ",
+        "contact": {
+            "email": "support@f5.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        },
+        {
+            "url": "https://localhost:8443/"
+        },
+        {
+            "url": "https://{host}:{port}/",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "The host to issue requests"
+                },
+                "port": {
+                    "default": "443",
+                    "description": "The host port to issue requests"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "BasicAuth": []
+        },
+        {
+            "BearerAuth": []
+        },
+        {
+            "ApiKeyAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Trust Services",
+            "description": "Management trusts between TMOS devices"
+        }
+    ],
+    "paths": {
+        "/TrustedDevices": {
+            "put": {
+                "tags": [
+                    "Trust Services"
+                ],
+                "summary": "add devices to trust",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "addTrusts",
+                "requestBody": {
+                    "description": "Add declared devices to existing trusts",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "devices": {
+                                        "type": "array",
+                                        "items": {
+                                            "oneOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/CreateDevicesUsernamePassphrase"
+                                                },
+                                                {
+                                                    "$ref": "#/components/schemas/CreateDevicesSSHKey"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "description": "Declaration accepted",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid device declaration",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "missing targetUsername"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-swagger-router-controller": "TrustedDevicesController"
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key"
+            }
+        },
+        "schemas": {
+            "CreateDevicesUsernamePassphrase": {
+                "type": "object",
+                "required": [
+                    "targetHost",
+                    "targetPort",
+                    "targetUsername",
+                    "targetPassphrase"
+                ],
+                "properties": {
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "targetUsername": {
+                        "description": "Username with Administrator role on the targetHost",
+                        "type": "string"
+                    },
+                    "targetPassphrase": {
+                        "description": "Password for the targetUser",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "targetHost": "172.13.1.103",
+                    "targetPort": 443,
+                    "targetUsername": "admin",
+                    "targetPassphrase": "admin"
+                }
+            },
+            "CreateDevicesSSHKey": {
+                "type": "object",
+                "required": [
+                    "targetHost",
+                    "targetSshKey"
+                ],
+                "properties": {
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "targetUsername": {
+                        "description": "The SSH session user",
+                        "type": "string",
+                        "default": "root"
+                    },
+                    "targetSshKey": {
+                        "description": "Path to the SSH key to use to establish trust",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "targetHost": "172.13.1.103",
+                    "targetSshKey": "/sshkeys/id_rsa"
+                }
+            },
+            "DeclaredDevices": {
+                "type": "object",
+                "properties": {
+                    "targetUUID": {
+                        "$ref": "#/components/schemas/uuid"
+                    },
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "state": {
+                        "description": "Current trust establishement state",
+                        "type": "string"
+                    },
+                    "targetHostname": {
+                        "description": "The hostname of the trusted device",
+                        "type": "string"
+                    },
+                    "targetVersion": {
+                        "description": "The TMOS version of the trusted device",
+                        "type": "string"
+                    },
+                    "targetRESTVersion": {
+                        "description": "The iControl REST version installed on the trusted device",
+                        "type": "string"
+                    },
+                    "available": {
+                        "description": "If the device trust is currently available",
+                        "type": "boolean"
+                    },
+                    "failedMonitors": {
+                        "description": "The number of concurrent failed iControl REST monitoring attempts",
+                        "type": "number"
+                    }
+                },
+                "example": {
+                    "targetUUID": "7390b3b8-7682-4554-83e5-764e4f26703c",
+                    "targetHost": "172.13.1.103",
+                    "targetPort": 443,
+                    "state": "ACTIVE",
+                    "targetHostname": "bigip1.openstack.local",
+                    "targetVersion": "13.1.1",
+                    "targetRESTVersion": "13.1.1-0.0.4",
+                    "available": true,
+                    "failedMonitors": 0
+                }
+            },
+            "uuid": {
+                "type": "string",
+                "description": "UUID4 Id string",
+                "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+            },
+            "tcpPort": {
+                "type": "integer",
+                "description": "TCP port number",
+                "minimum": 1,
+                "maximum": 65535
+            }
+        }
+    }
+}

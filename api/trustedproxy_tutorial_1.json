@@ -1,0 +1,365 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Retrieving Time Limited Access Tokens for Trusted Devices",
+        "description": "
+            <a href=\"/TrustedDevicesUI/docs/index.html\" alt=\"Load Tutorial\" class=\"link\">Return to Full Specification</a></br>    
+            <p> 
+            iControl REST services establish trust by publishing certificates between devices then using associated keys to create time-limited tokens. 
+            The tokens are published as URL query parameters which, when added to a standard iControl REST request, can be identified,
+            validated, and authorized by remote iControl REST workers. As long as a token can be validated as being created by a entity with an
+            associated trusted key, and the token has not expired, the request will be carried out in a context with Administrator role.
+            This is the basis for TMOS device group communications and configuration synchronization. It can also be used for orchestration.
+            </p>
+            <p>
+            Once a device trust has been established, a time-limited token can be retrieved using <span style='font-family: monospace; font-weight: bold;'>GET</span>
+            requests to the <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy</span> endpoint. The request must identify the target
+            trusted device by its <span style='font-family: monospace; font-weight: bold;'>trustedHost</span> or <span style='font-family: monospace; font-weight: bold;'>trustedUUID</span>
+            property. Either of these properties can be specified as query parameters to the <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy</span> endpoint,
+            or the <span style='font-family: monospace; font-weight: bold;'>trustedUUID</span> can be added as a path element.
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedProxy?targetHost=172.13.1.103</span>
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedProxy?targetUUID=7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedProxy/7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            <p>
+            If a valid device trust exists, the returned JSON structure will contain a <span style='font-family: monospace; font-weight: bold;'>queryParameter</span>
+            property which is the current trusted device token. This token can be added to any iControl REST request made directly to the remote device's iControl REST 
+            endpoints. The returned JSON structure will also contain a <span style='font-family: monospace; font-weight: bold;'>timestamp</span> attribute which specifies when the token was generated. 
+            This timestamp is a UNIX timestamp. You should not attempt to use the token if the <span style='font-family: monospace; font-weight: bold;'>timestamp</span> 
+            property represent a time greater then 600 seconds.
+            </p>
+            <p>
+            The returned <span style='font-family: monospace; font-weight: bold;'>targetUUID</span>, <span style='font-family: monospace; font-weight: bold;'>targetHost</span>, 
+            and <span style='font-family: monospace; font-weight: bold;'>targetPort</span> properties are provided for convenience.
+            </p>
+            <p>
+            <pre style='white-space: nowrap;'>
+            {</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"queryParameter\": \"em_server_ip=1.1.1.104&em_server_auth_token=32W8%2FNw2mGHRDiqIbLbVblMy3L%2FT4oMI1LvEKQK4T8s8c9qYntQjZ47peLgT4H0l6ShubKNf1ubRkzV%2F3r9yCJAp68FlCtH0HSKT%2FwukWCSvWSUU1oEdSx0gRgUUUOkDjVDer1%2BOit8MRE8L4Nh5ZoUsPfNxgEBSoFdg0VvJ5ycEJhjKd0YXfD0R%2B6Qk%2FhPHpYmXyHdwC0bRvl0%2FlBn2QvQkvyRZGLiL3r0cOemLRKFsCcLTSpQlUUM%2BhcbXuwI%2B9%2FVMv5XUnY3%2FpxfUIS7O8k%2FWDVGm2r%2FKyWI2lNlHqHbkN5owk5FW7AXBArDI0OOLvvqEfg94DkCpZF2RLwS7xQ%3D%3D\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"timestampl\": 1546102061136,</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetUUID\": \"7390b3b8-7682-4554-83e5-764e4f26703c\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetHost\": \"172.13.1.103\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetPort\": 443</br>
+            }</br>
+            </pre>
+            </p>
+            <p>
+            Once a token has been retrieved, a direct iControl REST request can be issued, augmenting the query parameters with the token.
+            </p>
+            <p>
+            <span style='font-family: monospace; white-space: nowrap;'>GET https://172.13.1.103:443/mgmt/shared/echo?em_server_ip=1.1.1.104&em_server_auth_token=32W8%2FNw2mGHRDiqIbLbVblMy3L%2FT4oMI1LvEKQK4T8s8c9qYntQjZ47peLgT4H0l6ShubKNf1ubRkzV%2F3r9yCJAp68FlCtH0HSKT%2FwukWCSvWSUU1oEdSx0gRgUUUOkDjVDer1%2BOit8MRE8L4Nh5ZoUsPfNxgEBSoFdg0VvJ5ycEJhjKd0YXfD0R%2B6Qk%2FhPHpYmXyHdwC0bRvl0%2FlBn2QvQkvyRZGLiL3r0cOemLRKFsCcLTSpQlUUM%2BhcbXuwI%2B9%2FVMv5XUnY3%2FpxfUIS7O8k%2FWDVGm2r%2FKyWI2lNlHqHbkN5owk5FW7AXBArDI0OOLvvqEfg94DkCpZF2RLwS7xQ%3D%3D</span>
+            </p>
+            ",
+        "contact": {
+            "email": "support@f5.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        },
+        {
+            "url": "https://localhost:8443/"
+        },
+        {
+            "url": "https://{host}:{port}/",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "The host to issue requests"
+                },
+                "port": {
+                    "default": "443",
+                    "description": "The host port to issue requests"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "BasicAuth": []
+        },
+        {
+            "BearerAuth": []
+        },
+        {
+            "ApiKeyAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Proxy Services",
+            "description": "Proxy iControl REST requests or get trusted tokens for trusted TMOS devices"
+        }
+    ],
+    "paths": {
+        "/TrustedProxy": {
+            "get": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "retrieve trust token for trusted TMOS devices",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "getTrustToken",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "query",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "targetHost",
+                        "in": "query",
+                        "description": "Filter output to the matching targetHost",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Retrieved Tokens",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeviceToken"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedProxyController"
+        },
+        "/TrustedProxy/{targetUUID}": {
+            "get": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "retrieve trust token for trusted TMOS devices",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "getTrustTokenByUUID",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Retrieved Token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/DeviceToken"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedProxyController"
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key"
+            }
+        },
+        "schemas": {
+            "DeviceToken": {
+                "type": "object",
+                "properties": {
+                    "queryParameter": {
+                        "description": "query variables to append to direct device queries as a trust token",
+                        "type": "string"
+                    },
+                    "timestamp": {
+                        "description": "Unix timestamp for this request. Tokens are good for 10 minutes only.",
+                        "type": "integer"
+                    },
+                    "targetUUID": {
+                        "$ref": "#/components/schemas/uuid"
+                    },
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    }
+                },
+                "example": {
+                    "queryParameter": "em_server_ip=1.1.1.104&em_server_auth_token=32W8%2FNw2mGHRDiqIbLbVblMy3L%2FT4oMI1LvEKQK4T8s8c9qYntQjZ47peLgT4H0l6ShubKNf1ubRkzV%2F3r9yCJAp68FlCtH0HSKT%2FwukWCSvWSUU1oEdSx0gRgUUUOkDjVDer1%2BOit8MRE8L4Nh5ZoUsPfNxgEBSoFdg0VvJ5ycEJhjKd0YXfD0R%2B6Qk%2FhPHpYmXyHdwC0bRvl0%2FlBn2QvQkvyRZGLiL3r0cOemLRKFsCcLTSpQlUUM%2BhcbXuwI%2B9%2FVMv5XUnY3%2FpxfUIS7O8k%2FWDVGm2r%2FKyWI2lNlHqHbkN5owk5FW7AXBArDI0OOLvvqEfg94DkCpZF2RLwS7xQ%3D%3D",
+                    "timestamp": 1546102061136,
+                    "targetUUID": "7390b3b8-7682-4554-83e5-764e4f26703c",
+                    "targetHost": "172.13.1.103",
+                    "targetPort": 443
+                }
+            },
+            "uuid": {
+                "type": "string",
+                "description": "UUID4 Id string",
+                "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+            },
+            "tcpPort": {
+                "type": "integer",
+                "description": "TCP port number",
+                "minimum": 1,
+                "maximum": 65535
+            }
+        }
+    }
+}

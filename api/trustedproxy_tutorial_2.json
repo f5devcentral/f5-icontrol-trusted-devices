@@ -1,0 +1,240 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Clearing Access Token Cache",
+        "description": "
+            <a href=\"/TrustedDevicesUI/docs/index.html\" alt=\"Load Tutorial\" class=\"link\">Return to Full Specification</a></br>    
+            <p> 
+            To improve performance, the <span style='font-family: monospace; font-weight: bold;'>TrustedProxy</span> service caches trusted device 
+            UUIDs and time-limited tokens. This allows orchestration applications to query the token on each request without causing any 
+            significant stress on the iControl REST framework. By default the cache expires automatically before the trust token expires.
+            </p>
+            <p> 
+            Manual flushing of the target UUID and token cache is achieved by using <span style='font-family: monospace; font-weight: bold;'>DELETE</span>
+            requests to the <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy</span> endpoint
+            </p>
+            <p>
+            The entire cache is flushed if a <span style='font-family: monospace; font-weight: bold;'>DELETE</span>
+            requests is made to the <span style='font-family: monospace; font-weight: bold;'>/TrustedProxy</span> endpoint with an additional
+            path elements.
+            </p>
+            <p>
+            <span style='font-family: monospace;'>DELETE /TrustedProxy</span>
+            </p>
+            <p>
+            Optionally a single cache entry can be flushed by including the <span style='font-family: monospace; font-weight: bold;'>targetUUID</span> property 
+            as a path element on the request.
+            </p> 
+            <p>
+            <span style='font-family: monospace;'>DELETE /TrustedProxy/7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            ",
+        "contact": {
+            "email": "support@f5.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        },
+        {
+            "url": "https://localhost:8443/"
+        },
+        {
+            "url": "https://{host}:{port}/",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "The host to issue requests"
+                },
+                "port": {
+                    "default": "443",
+                    "description": "The host port to issue requests"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "BasicAuth": []
+        },
+        {
+            "BearerAuth": []
+        },
+        {
+            "ApiKeyAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Proxy Services",
+            "description": "Proxy iControl REST requests or get trusted tokens for trusted TMOS devices"
+        }
+    ],
+    "paths": {
+        "/TrustedProxy": {
+            "delete": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "delete all cached tokens for trusted TMOS devices",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "flushTokenCache",
+                "responses": {
+                    "200": {
+                        "description": "Token Cache Flushed"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedProxyController"
+        },
+        "/TrustedProxy/{targetUUID}": {
+            "delete": {
+                "tags": [
+                    "Proxy Services"
+                ],
+                "summary": "delete cached token for a TMOS devices",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "flushTokenCacheByUUID",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flushed Token"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedProxyController"
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key"
+            }
+        },
+        "schemas": {
+            "uuid": {
+                "type": "string",
+                "description": "UUID4 Id string",
+                "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+            }
+        }
+    }
+}

@@ -1,0 +1,369 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Query Trusts - Discover Trusted Devices",
+        "description": "
+            <a href=\"/TrustedDevicesUI/docs/index.html\" alt=\"Load Tutorial\" class=\"link\">Return to Full Specification</a></br>    
+            <p>
+            You can query which devices are currently trust the local iControl REST framework by issuing <span style='font-family: monospace; font-weight: bold;'>GET</span> 
+            requests to the <span style='font-family: monospace; font-weight: bold;'>/TrustedDevices</span> endpoint.
+            </p>
+            <p>
+            A trusted device follows the <span style='font-family: monospace; font-weight: bold;'>DeclaredDevices</span> schema.
+            <div class='highlight-code'>
+            <pre>
+            {</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetUUID\": \"7390b3b8-7682-4554-83e5-764e4f26703c\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetHost\": \"172.13.1.103\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetPort\": 443,</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"state\": \"ACTIVE\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetHostname\": \"bigip1.openstack.local\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetVersion\": \"13.1.1\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"targetRESTVersion\": \"13.1.1-0.0.4\",</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"available\": true,</br>
+            &nbsp;&nbsp;&nbsp;&nbsp;\"failedMonitors\": 0</br>
+            }</br>
+            </pre>
+            </div>
+            </p>
+            <p>
+            The <span style='font-family: monospace; font-weight: bold;'>GET</span> request can use either query parameters or request path elements to filter the results 
+            based on the trusted device's <span style='font-family: monospace; font-weight: bold;'>targetUUID</span> or <span style='font-family: monospace; font-weight: bold;'>targetHost</span> 
+            properties.
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedDevices?targetHost=172.13.1.103</span>
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedDevices?targetUUID=7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            <p>
+            <span style='font-family: monospace;'>GET /TrustedDevices/7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            <h3>Device Properties</h3>
+            <p>
+            Several device properites are populated by established communications with the remove device. Those include:
+            <table style='border-collapse: collapse; border: 1px solid black;'>
+            <tr><th>Property</th><th>Description</th></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>targetUUID</td><td style='padding: 5px; border: 1px solid black;'>The unique machine ID of the remote device.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>targetPort</td><td style='padding: 5px; border: 1px solid black;'>The HTTPS port on which iControl REST listens.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>state</td><td style='padding: 5px; border: 1px solid black;'>The current trust state. This can be <span style='font-family: monospace;'>ACTIVE, PENDING, FRAMEWORK_DEPLOYMENT_PENDING, CERTIFICATE_INSTALL, PENDING_DELETE</span>, or <span style='font-family: monospace;'>UNDISCOVERED</span>. Only an <span style='font-family: monospace;'>ACTIVE</span> trust can be used.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>targetHostname</td><td style='padding: 5px; border: 1px solid black;'>The remote device hostname.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>targetVersion</td><td style='padding: 5px; border: 1px solid black;'>The remote device TMOS version.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>targetRESTVersion</td><td style='padding: 5px; border: 1px solid black;'>The remote device iControl REST version.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>available</td><td style='padding: 5px; border: 1px solid black;'>Boolean indicating if the trust can be used.</td></tr>
+            <tr><td style='font-weight: bold; padding: 5px; border: 1px solid black;'>failedMonitors</td><td style='padding: 5px; border: 1px solid black;'>Number indicating the current number of failed attempts to communicate to the remote device.</td></tr>
+            </table>
+            </p>
+            <p>
+            The <span style='font-family: monospace; font-weight: bold;'>targetHost</span> property is provided when creating the trust. There are other properties
+            which are also defined when the trust is created which are only useful to establish the trust. After that process is complete, those properites are not
+            persisted and are never displayed.
+            </p>
+            ",
+        "contact": {
+            "email": "support@f5.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        },
+        {
+            "url": "https://localhost:8443/"
+        },
+        {
+            "url": "https://{host}:{port}/",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "The host to issue requests"
+                },
+                "port": {
+                    "default": "443",
+                    "description": "The host port to issue requests"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "BasicAuth": []
+        },
+        {
+            "BearerAuth": []
+        },
+        {
+            "ApiKeyAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Trust Services",
+            "description": "Management trusts between TMOS devices"
+        }
+    ],
+    "paths": {
+        "/TrustedDevices": {
+            "get": {
+                "tags": [
+                    "Trust Services"
+                ],
+                "summary": "retrieve defined device trusts optionally matching filters",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "getTrusts",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "query",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "targetHost",
+                        "in": "query",
+                        "description": "Filter output to the matching targetHost",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Retrieved Devices",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "devices": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DeclaredDevices"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "trusted devices not found"
+                                }
+                            }
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "x-swagger-router-controller": "TrustedDevicesController"
+            },
+            "x-swagger-router-controller": "TrustedDevicesController"
+        },
+        "/TrustedDevices/{targetUUID}": {
+            "get": {
+                "tags": [
+                    "Trust Services"
+                ],
+                "summary": "retrieve defined device trusts matching the targetUUID",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "getTrust",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Filter output to the matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Retrieved Devices",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "devices": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DeclaredDevices"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {}
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {}
+                    },
+                    "500": {
+                        "description": "System exception"
+                    }
+                },
+                "x-swagger-router-controller": "TrustedDevicesController"
+            },
+            "x-swagger-router-controller": "TrustedDevicesController"
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key"
+            }
+        },
+        "schemas": {
+            "DeclaredDevices": {
+                "type": "object",
+                "properties": {
+                    "targetUUID": {
+                        "$ref": "#/components/schemas/uuid"
+                    },
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "state": {
+                        "description": "Current trust establishement state",
+                        "type": "string"
+                    },
+                    "targetHostname": {
+                        "description": "The hostname of the trusted device",
+                        "type": "string"
+                    },
+                    "targetVersion": {
+                        "description": "The TMOS version of the trusted device",
+                        "type": "string"
+                    },
+                    "targetRESTVersion": {
+                        "description": "The iControl REST version installed on the trusted device",
+                        "type": "string"
+                    },
+                    "available": {
+                        "description": "If the device trust is currently available",
+                        "type": "boolean"
+                    },
+                    "failedMonitors": {
+                        "description": "The number of concurrent failed iControl REST monitoring attempts",
+                        "type": "number"
+                    }
+                },
+                "example": {
+                    "targetUUID": "7390b3b8-7682-4554-83e5-764e4f26703c",
+                    "targetHost": "172.13.1.103",
+                    "targetPort": 443,
+                    "state": "ACTIVE",
+                    "targetHostname": "bigip1.openstack.local",
+                    "targetVersion": "13.1.1",
+                    "targetRESTVersion": "13.1.1-0.0.4",
+                    "available": true,
+                    "failedMonitors": 0
+                }
+            },
+            "uuid": {
+                "type": "string",
+                "description": "UUID4 Id string",
+                "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+            },
+            "tcpPort": {
+                "type": "integer",
+                "description": "TCP port number",
+                "minimum": 1,
+                "maximum": 65535
+            }
+        }
+    }
+}

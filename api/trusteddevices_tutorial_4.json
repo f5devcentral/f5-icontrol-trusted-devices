@@ -1,0 +1,369 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Deleting Trusts - Imperatively Delete Trusted Devices",
+        "description": "
+            <a href=\"/TrustedDevicesUI/docs/index.html\" alt=\"Load Tutorial\" class=\"link\">Return to Full Specification</a></br>    
+            <p>
+            You can delete existing devices which trust the local iControl REST framework by issuing <span style='font-family: monospace; font-weight: bold;'>DELETE</span> 
+            requests to the <span style='font-family: monospace; font-weight: bold;'>/TrustedDevices</span> endpoint.
+            </p>
+            <p>
+            <span style='font-family: monospace; font-weight: bold;'>DELETE</span> requests can use either query parameters or request path elements to specify 
+            the device trust to delete. The device can be identified by its <span style='font-family: monospace; font-weight: bold;'>targetUUID</span> or 
+            <span style='font-family: monospace; font-weight: bold;'>targetHost</span> and <span style='font-family: monospace; font-weight: bold;'>targetPort</span> 
+            properties.
+            </p>
+            <p>
+            <span style='font-family: monospace;'>DELETE /TrustedDevices?targetHost=172.13.1.103&targetPort=443</span>
+            </p>
+            <p>
+            <span style='font-family: monospace;'>DELETE /TrustedDevices?targetUUID=7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            <p>
+            <span style='font-family: monospace;'>DELETE /TrustedDevices/7390b3b8-7682-4554-83e5-764e4f26703c</span>
+            </p>
+            ",
+        "contact": {
+            "email": "support@f5.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        },
+        {
+            "url": "https://localhost:8443/"
+        },
+        {
+            "url": "https://{host}:{port}/",
+            "variables": {
+                "host": {
+                    "default": "localhost",
+                    "description": "The host to issue requests"
+                },
+                "port": {
+                    "default": "443",
+                    "description": "The host port to issue requests"
+                }
+            }
+        }
+    ],
+    "security": [
+        {
+            "BasicAuth": []
+        },
+        {
+            "BearerAuth": []
+        },
+        {
+            "ApiKeyAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Trust Services",
+            "description": "Management trusts between TMOS devices"
+        }
+    ],
+    "paths": {
+        "/TrustedDevices": {
+            "delete": {
+                "tags": [
+                    "Trust Services"
+                ],
+                "summary": "delete device from existing trusts matching filters",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "deleteTrust",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "query",
+                        "description": "Delete trust matching targetUUID",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    },
+                    {
+                        "name": "targetHost",
+                        "in": "query",
+                        "description": "Delete trust(S) matching targetHost",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "targetPort",
+                        "in": "query",
+                        "description": "Delete trust matchin targetHost and targetPort",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/tcpPort"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Request accepted",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "string",
+                                    "example": "invalid targetUUID"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "System exception",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "errorCode": {
+                                            "type": "integer"
+                                        },
+                                        "errorMessage": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "example": {
+                                        "errorCode": 500,
+                                        "errorMessage": "connection timeout"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedDevicesController"
+        },
+        "/TrustedDevices/{targetUUID}": {
+            "delete": {
+                "tags": [
+                    "Trust Services"
+                ],
+                "summary": "delete device from existing trusts matching the targetUUID",
+                "security": [
+                    {
+                        "BasicAuth": []
+                    },
+                    {
+                        "BearerAuth": []
+                    },
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "operationId": "deleteTrustByUUID",
+                "parameters": [
+                    {
+                        "name": "targetUUID",
+                        "in": "path",
+                        "description": "Delete trust matching targetUUID",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Request accepted",
+                        "content": {}
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "No devices found",
+                        "content": {}
+                    },
+                    "405": {
+                        "description": "Validation exception",
+                        "content": {}
+                    },
+                    "500": {
+                        "description": "System exception"
+                    }
+                }
+            },
+            "x-swagger-router-controller": "TrustedDevicesController"
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "BasicAuth": {
+                "type": "http",
+                "scheme": "basic"
+            },
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer"
+            },
+            "ApiKeyAuth": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "X-API-Key"
+            }
+        },
+        "schemas": {
+            "CreateDevicesUsernamePassphrase": {
+                "type": "object",
+                "required": [
+                    "targetHost",
+                    "targetPort",
+                    "targetUsername",
+                    "targetPassphrase"
+                ],
+                "properties": {
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "targetUsername": {
+                        "description": "Username with Administrator role on the targetHost",
+                        "type": "string"
+                    },
+                    "targetPassphrase": {
+                        "description": "Password for the targetUser",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "targetHost": "172.13.1.103",
+                    "targetPort": 443,
+                    "targetUsername": "admin",
+                    "targetPassphrase": "admin"
+                }
+            },
+            "CreateDevicesSSHKey": {
+                "type": "object",
+                "required": [
+                    "targetHost",
+                    "targetSshKey"
+                ],
+                "properties": {
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "targetUsername": {
+                        "description": "The SSH session user",
+                        "type": "string",
+                        "default": "root"
+                    },
+                    "targetSshKey": {
+                        "description": "Path to the SSH key to use to establish trust",
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "targetHost": "172.13.1.103",
+                    "targetSshKey": "/sshkeys/id_rsa"
+                }
+            },
+            "DeclaredDevices": {
+                "type": "object",
+                "properties": {
+                    "targetUUID": {
+                        "$ref": "#/components/schemas/uuid"
+                    },
+                    "targetHost": {
+                        "description": "The trusted devices targetHost definition",
+                        "type": "string"
+                    },
+                    "targetPort": {
+                        "$ref": "#/components/schemas/tcpPort"
+                    },
+                    "state": {
+                        "description": "Current trust establishement state",
+                        "type": "string"
+                    },
+                    "targetHostname": {
+                        "description": "The hostname of the trusted device",
+                        "type": "string"
+                    },
+                    "targetVersion": {
+                        "description": "The TMOS version of the trusted device",
+                        "type": "string"
+                    },
+                    "targetRESTVersion": {
+                        "description": "The iControl REST version installed on the trusted device",
+                        "type": "string"
+                    },
+                    "available": {
+                        "description": "If the device trust is currently available",
+                        "type": "boolean"
+                    },
+                    "failedMonitors": {
+                        "description": "The number of concurrent failed iControl REST monitoring attempts",
+                        "type": "number"
+                    }
+                },
+                "example": {
+                    "targetUUID": "7390b3b8-7682-4554-83e5-764e4f26703c",
+                    "targetHost": "172.13.1.103",
+                    "targetPort": 443,
+                    "state": "ACTIVE",
+                    "targetHostname": "bigip1.openstack.local",
+                    "targetVersion": "13.1.1",
+                    "targetRESTVersion": "13.1.1-0.0.4",
+                    "available": true,
+                    "failedMonitors": 0
+                }
+            },
+            "uuid": {
+                "type": "string",
+                "description": "UUID4 Id string",
+                "pattern": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+            },
+            "tcpPort": {
+                "type": "integer",
+                "description": "TCP port number",
+                "minimum": 1,
+                "maximum": 65535
+            }
+        }
+    }
+}
