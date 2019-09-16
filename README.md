@@ -2,6 +2,12 @@
 
 [See me published into an NGINX Unit runnng in a docker container! - f5-icontrol-gateway](https://cloud.docker.com/u/jgruberf5/repository/docker/jgruberf5/f5-icontrol-gateway)
 
+```
+docker run -p 8443:443 --rm --name f5-icontrol-gateway jgruberf5/f5-icontrol-gateway:latest
+```
+
+Open a browser to [https://localhost:8443](https://localhost:8443)
+
 ## Overview
 
 This is a nodejs based application which expects to be co-resident with `restjavad` such that it can create device trusts and proxy trusted requests.
