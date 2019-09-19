@@ -1,5 +1,7 @@
 # Trusted Device Services - Swagger Edition
 
+![TrustedDevicesOrchestrationServices](./static/images/TrustedDevicesApplication640x360.png)
+
 [See me published into an NGINX Unit runnng in a docker container! - f5-icontrol-gateway](https://cloud.docker.com/u/jgruberf5/repository/docker/jgruberf5/f5-icontrol-gateway)
 
 ```
