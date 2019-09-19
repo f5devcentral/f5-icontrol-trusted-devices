@@ -3,6 +3,8 @@ info:
   title: Trusted Device Services
   description: '
   <p>
+  <table>
+  <tr><td>
   <h3>Trusted Devices Tutorials</h3>
   <a href="/TrustedDevicesUI/docs/index.html?urls.primaryName=Querying%20Trusts" alt="Load Tutorial" class="link">Querying Trusts - Discover Trusted Devices</a></br>
   <a href="/TrustedDevicesUI/docs/index.html?urls.primaryName=Declaring%20Trusts" alt="Load Tutorial" class="link">Declaring Trusts - Declarative API for Trusted Devices</a></br>
@@ -15,6 +17,12 @@ info:
   <h3>Container Endpoints</h3>
   <a href="/config" alt="Configure Published NGINX Applications" class="link">NGINX Unit Configuration Endpoint</a></br>
   <a href="/mgmt" alt="F5 iControl REST iControl REST Services" class="link">iControl REST Services</a></br>
+  </td>
+  <td>
+  <img alt="TrustedDeviceServices" src="/TrustedDevicesUI/static/images/TrustedDevicesApplication640x360.png">
+  </td>
+  </tr>
+  </table>
   </p>
   '
   contact:
