@@ -2,10 +2,10 @@
 
 ![TrustedDevicesOrchestrationServices](./static/images/TrustedDevicesApplication640x360.png)
 
-[See me published into an NGINX Unit runnng in a docker container! - f5-icontrol-gateway](https://cloud.docker.com/u/jgruberf5/repository/docker/jgruberf5/f5-icontrol-gateway)
+[See me published into an NGINX Unit runnng in a docker container! - f5-icontrol-gateway](https://cloud.docker.com/u/f5devcentral/repository/docker/f5devcentral/f5-icontrol-gateway)
 
 ```
-docker run -p 8443:443 --rm --name f5-icontrol-gateway jgruberf5/f5-icontrol-gateway:latest
+docker run -p 8443:443 --rm --name f5-icontrol-gateway f5devcentral/f5-icontrol-gateway:latest
 ```
 
 Open a browser to [https://localhost:8443](https://localhost:8443)
