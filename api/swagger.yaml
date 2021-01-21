@@ -51,6 +51,8 @@ tags:
   description: Management trusts between TMOS devices
 - name: Proxy Services
   description: Proxy iControl REST requests or get trusted tokens for trusted TMOS devices
+- name: SSH Key Services
+  description: Copy SSH keys to the gateway and authorize them on remote TMOS devices
 paths:
   /TrustedDevices:
     get:
@@ -876,6 +878,278 @@ paths:
                   errorCode: 500
                   errorMessage: 'connection timeout'
     x-swagger-router-controller: TrustedProxyController
+  /SSHKeys:
+    get:
+      tags:
+      - SSH Key Services
+      summary: retrieve SSH keys on the the gateway
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
+      operationId: getSshKeys
+      parameters:
+        - name: sshKeyName
+          in: query
+          description: Filter output to the matching SSH identity file name
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          description: Retrieved SSH keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      type: string
+                example:
+                  keys:
+                    - id_rsa
+        401:
+          description: Unauthorized
+        404:
+          description: No SSH keys found
+          content: 
+            application/json:
+              schema:
+                type: string
+                example: 'SSH keys not found'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: SshCredentialsController
+    post:
+      tags:
+      - SSH Key Services
+      summary: publish SSH private PEM key file to the gateway
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
+      operationId: createSshIdentityFile
+      requestBody:
+        description: Create an SSH identity file on the gateway. If no privateKey is defined, one will be generated.
+        content:
+          application/json:            
+            schema:
+              type: object
+              properties:
+                key:
+                  $ref: '#/components/schemas/CreateSshIdentityFile'
+        required: true
+      responses:
+        202:
+          description: SSH identity file created
+          content:
+            application/json: {}
+        400:
+          description: Invalid private key declaration
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Invalid PEM formatted key
+        401:
+          description: Unauthorized
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'SSH key definition requires name'
+        409:
+          description: Identity file exists
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'an SSH identity file by the supplied name already exists'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: SshCredentialsController
+    delete:
+      tags:
+      - SSH Key Services
+      summary: delete SSH identity file from the gateway
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
+      operationId: deleteSshKey
+      parameters:
+        - name: sshKeyName
+          in: query
+          description: SSH identity file name
+          required: true
+          schema:
+            type: string
+      responses:
+        202:
+          description: Request accepted 
+        401:
+          description: Unauthorized
+        404:
+          description: No identity file found
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    x-swagger-router-controller: SshCredentialsController
+  /SSHAuthorize:
+    post:
+      tags:
+      - SSH Key Services
+      summary: authorize an SSH public key to a remote device from gateway identity file
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
+      operationId: authorizeSshKey
+      requestBody:
+        description: authorize an SSH public key to a remote device
+        content:
+          application/json:            
+            schema:
+              type: object
+              properties:
+                key:
+                  $ref: '#/components/schemas/PublishSshPublicKey'
+        required: true
+      responses:
+        202:
+          description: Declaration accepted
+          content:
+            application/json: {}
+        400:
+          description: Invalid device declaration
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          description: Unauthorized
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'SSH key definition requires sshKeyName, targetHost, targetUsername, and targetPassphrase'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+      x-swagger-router-controller: SshCredentialsController
+    delete:
+      tags:
+      - SSH Key Services
+      summary: deauthorize SSH key from a remote device from gateway identity file
+      security:
+       - BasicAuth: []
+       - BearerAuth: []
+       - ApiKeyAuth: []
+      operationId: deauthorizeSshKey
+      parameters:
+        - name: sshKeyName
+          in: query
+          description: SSH key name to deauthorize on a remote device
+          required: true
+          schema:
+            type: string
+        - name: targetHost
+          in: query
+          description: The remote device hostname or IP address
+          required: true
+          schema:
+            type: string
+        - name: targetPort
+          in: query
+          description: The remote device SSH port
+          required: false
+          schema:
+            $ref: '#/components/schemas/tcpPort'
+      responses:
+        202:
+          description: Request accepted 
+          content:
+            application/json: {}
+        401:
+          description: Unauthorized
+        404:
+          description: No indentity file found
+          content:
+            application/json: {}
+        405:
+          description: Validation exception
+          content:
+            application/json:
+              schema:
+                type: string
+                example: 'invalid identity file'
+        500:
+          description: System exception
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errorCode:
+                    type: integer
+                  errorMessage:
+                    type: string
+                example:
+                  errorCode: 500
+                  errorMessage: 'connection timeout'
+    x-swagger-router-controller: SshCredentialsController
 components:
   securitySchemes:
     BasicAuth:
@@ -994,6 +1268,72 @@ components:
         targetUUID: 7390b3b8-7682-4554-83e5-764e4f26703c
         targetHost: 172.13.1.103
         targetPort: 443
+    CreateSshIdentityFile:
+      type: object
+      properties:
+        name:
+          type: string
+        privateKey:
+          type: string
+      required:
+       - name
+      example:
+        name: "id_rsa"
+        privateKey: "-----BEGIN RSA PRIVATE KEY-----\
+MIIEpAIBAAKCAQEAvPgZD9jJL27HsNnMBcBYaPJ6cCnV4n0SFMCuUw4UBR3NX5Sv\
+a4vSFzvOYVw6qvMK4CqRaB0apQUHWlWfhQeieO9vWjDagnSUNo++iXc6gKsaMOcc\
+Baymv6x7qLT3c8TVJYqzy40SD5zuqe8RV/l3kdy7qJXIbHxqV4DL+soIk8D8/pmi\
+IxesmZywLMDvEjpBcQDaMpMYkHSZSB1IzntllKgrD5UgGNW+JvUhfT2ZktcDOQpP\
+bN3bto/6s0M74J5ujnE/3FBWsuoAXnTaaHqDYIGI3eZfepmpS+AAiph7nPjFMCHu\
+8iC0xJ7QAqikPeWUjTX+BlN0rDmrYLSRrVTcywIDAQABAoIBAHc/pSkf5827/d43\
+gw16FRCdO/C+JdAYlylrclbNQor8BJc1kAGxKXIp9pHwDsHEP++4TSxDeYX7h2lV\
+MSZU7A2fI0jqHWpHwSQxT88V42BBGXUU0tUt38iDQ0HyeVmgM9XOEqn4KxaZNO8e\
+A3bd4bu1bOL1KpZzaPQxPgfUKNd70xS29BywsjU9GCVbuSvdLGW88F961wz1vQja\
+hAft/sYeY3sZkyJBG9dXtT5gSjCdTTyPFHvTM3o8dleumP+23bG/VmGfK+Ge6VXG\
+4XNFFlEKh+X0hWfxVinZA/rq67yoPfZqEEUuov2r2qRWeW3vGKFyiT3caQuZYivg\
+DCZnfRkCgYEA5VZpWIIHEC4EvX8qHF5cp46nljPuEc5QukuJpGtx52RMAF3CK4Mt\
+Dvey63nW+7Km6I/+gfi8Ydl59V3Mrz0JHM/JwBW7/pUs9NSGXAdXGALe7YaHBwVy\
+ey4Fj9fdAPINS4FLFiDwftV3BgM2YfnC4C+VBFjn8TW0bMFHwtEv2KUCgYEA0vA7\
+3sRi4HYSRCkWNDEIFNyNgjB0S5+WvS3p8aKmzrnxudd1fCJmSJaz3K26VtVqDLin\
+xACIzcwgMya/W7FVBW46NSY2LCyzc2pJd30xvuFor/N0/WACdEXiB72qHLZSat3A\
+zNNZZdyLBOHVJtxIWUIFNkNB4uaATnFbkAKRdK8CgYEAoXMw3H9Fa62J5sG0Kp5/\
+ifISptpOGjjtegkdkCOX33crTgKzZCCHwwa77awrnawKdqSQXn12WUhZ5FOxehh0\
+5tSdSl3CqBnquT04jWcZeCzlNcBEJLw/+NnQTpB/5F+C3onaC20LAa9TiGcQjO7g\
+sySsOpBAUP4m031KAKt1jIUCgYEAonC4Wlv4HQ0wEedmHvknVRFntDtmQ5p5deQ2\
+xYtRU9+kBE6lPdwr0nijuCzdU+NzkKpfH7SdpYYtwdZ0BMOySsVQ8/8iNrCR3S6b\
+tvXlai6h9OXSUREvsqTiZL2tlADfxUZSJCoaLTRCppbXE98NpBcQdnIi+f4yDraD\
+IYqowycCgYBrUivv2s2e9kDqvLt85OT86KPqHeTtcyls0IJB6JkcSXHhlVfu67+Z\
+GyjZ+1V2UZoiH2MjSS1U0MC3teXlHQnM+EzzyQ/tuOrcgfN13+jVf539Psv2kvkg\
+XkvQj53bHArIzZCSojeGcH4Z+yw4eYwh8KGgIZ7YRW/lZ3FBrF11Nw==\
+-----END RSA PRIVATE KEY-----"
+    PublishSshPublicKey:
+      type: object
+      required:
+        - targetHost
+        - targetUsername
+        - targetPassphrase
+        - sshKeyName
+      properties:
+        targetHost:
+          description: The remote device hostname or IP address
+          type: string
+        targetPort:
+          $ref: '#/components/schemas/tcpPort'
+        targetUsername:
+          description: The remote device SSH username
+          type: string
+        targetPassphrase:
+          description: The remote device SSH password
+          type: string
+        sshKeyName:
+          description: The SSH identity file name on the gateway
+          type: string
+      example:
+        targetHost: 192.168.245.1
+        targetPort: 22
+        targetUsername: root
+        targetPassphrase: default
+        sskKeyName: id_rsa
     SampleRequestBody:
       type: object
       additionalProperties: true
