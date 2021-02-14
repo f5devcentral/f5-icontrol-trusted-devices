@@ -52,7 +52,7 @@ tags:
 - name: Proxy Services
   description: Proxy iControl REST requests or get trusted tokens for trusted TMOS devices
 - name: SSH Key Services
-  description: Copy SSH keys to the gateway and authorize them on remote TMOS devices
+  description: Manage SSH private key files on the gateway
 paths:
   /TrustedDevices:
     get:
