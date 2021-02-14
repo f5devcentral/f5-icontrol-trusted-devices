@@ -39,34 +39,19 @@ exports.getSshKeys = function (sshKeyName) {
  **/
 exports.createSshIdentityFile = function (body) {
     return new Promise(function (resolve, reject) {
-        if ('key' in body && 'name' in body.key) {
-            const privateKeyPromises = []
-            if (! ('privateKey' in body.key.privateKey) ) {
-                privateKeyPromises.push(
-                    sshutils.createPrivateKey()
-                        .then( (privateKey) => {
-                            body.key.privateKey = privateKey;
-                        })
-                        .catch( (error) => {
-                            reject(error);
-                        })
-                );
-            }
-            Promise.all(privateKeyPromises)
+        if ('key' in body && 'name' in body.key && 'privateKey' in body.key) {
+            sshutils.createKeyFile(body.key.name, body.key.privateKey)
                 .then(() => {
-                    sshutils.createKeyFile(body.key.name, body.key.privateKey)
-                        .then(() => {
-                            resolve();
-                        });
+                    resolve();
                 })
                 .catch((error) => {
                     reject(error);
                 });
         } else {
           // report missing request body
-          const error = new Error('SSH key definition requires name');
+          const error = new Error('SSH key definition requires name and private key');
           error.statusCode = 405;
-          error.message = 'SSH key definition requires name';
+          error.message = 'SSH key definition requires name and private key';
           reject(error);
         }
     });
@@ -94,64 +79,5 @@ exports.deleteSshKey = function (sshKeyName) {
             error.message = 'invalid sshKeyName';
             reject(error);
         }
-    });
-};
-
-
-/**
- * authroize SSH key on a remote device
- *
- * body - request body
- **/
-exports.authorizeSshKey = function (body) {
-    return new Promise(function (resolve, reject) {
-        if ('key' in body &&
-            'sshKeyName' in body.key &&
-            'targetHost' in body.key &&
-            'targetUsername' in body.key &&
-            'targetPassphrase' in body.key) {
-            if(! ('targetPort' in body.key)) {
-                body.key.targetPort = 22;
-            }
-            sshutils.authorizeSshKey(
-              body.key.sshKeyName, body.key.targetHost,
-              body.key.targetPort, body.key.targetUsername,
-              body.key.targetPassphrase)
-                .then(() => {
-                    resolve();
-                })
-                .catch((error) => {
-                    // report errors authorizing SSH key
-                    reject(error);
-                });
-        } else {
-          // report missing request body
-          const error = new Error('SSH key definition requires sshKeyName, targetHost, targetUsername, and targetPassphrase');
-          error.statusCode = 405;
-          error.message = 'SSH key definition requires name';
-          reject(error);
-        }
-    });
-};
-
-
-/**
- * deauthroize SSH key on a remote device
- *
- * sshKeyName - the SSH key name on the gateway
- * targetHost - the target host to deauthorize the SSH key
- * targetPort - the target SSH port to deauthorize the SSH key
- *
- **/
-exports.deauthorizeSshKey = function (sshKeyName, targetHost, targetPort) {
-    return new Promise(function (resolve, reject) {
-        sshutils.deauthorizeSshKey(sshKeyName, targetHost, targetPort)
-            .then(() => {
-                resolve();
-            })
-            .catch((error) => {
-                // report errors deauthorizing SSH key
-                reject(error);
-            });
     });
 };

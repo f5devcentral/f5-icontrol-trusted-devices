@@ -973,7 +973,7 @@ paths:
             application/json:
               schema:
                 type: string
-                example: 'SSH key definition requires name'
+                example: 'SSH key definition requires name and private key'
         409:
           description: Identity file exists
           content:
@@ -1019,122 +1019,6 @@ paths:
           description: Unauthorized
         404:
           description: No identity file found
-        500:
-          description: System exception
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  errorCode:
-                    type: integer
-                  errorMessage:
-                    type: string
-                example:
-                  errorCode: 500
-                  errorMessage: 'connection timeout'
-    x-swagger-router-controller: SshCredentialsController
-  /SSHAuthorize:
-    post:
-      tags:
-      - SSH Key Services
-      summary: authorize an SSH public key to a remote device from gateway identity file
-      security:
-       - BasicAuth: []
-       - BearerAuth: []
-       - ApiKeyAuth: []
-      operationId: authorizeSshKey
-      requestBody:
-        description: authorize an SSH public key to a remote device
-        content:
-          application/json:            
-            schema:
-              type: object
-              properties:
-                key:
-                  $ref: '#/components/schemas/PublishSshPublicKey'
-        required: true
-      responses:
-        202:
-          description: Declaration accepted
-          content:
-            application/json: {}
-        400:
-          description: Invalid device declaration
-          content:
-            application/json:
-              schema:
-                type: string
-        401:
-          description: Unauthorized
-        405:
-          description: Validation exception
-          content:
-            application/json:
-              schema:
-                type: string
-                example: 'SSH key definition requires sshKeyName, targetHost, targetUsername, and targetPassphrase'
-        500:
-          description: System exception
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  errorCode:
-                    type: integer
-                  errorMessage:
-                    type: string
-                example:
-                  errorCode: 500
-                  errorMessage: 'connection timeout'
-      x-swagger-router-controller: SshCredentialsController
-    delete:
-      tags:
-      - SSH Key Services
-      summary: deauthorize SSH key from a remote device from gateway identity file
-      security:
-       - BasicAuth: []
-       - BearerAuth: []
-       - ApiKeyAuth: []
-      operationId: deauthorizeSshKey
-      parameters:
-        - name: sshKeyName
-          in: query
-          description: SSH key name to deauthorize on a remote device
-          required: true
-          schema:
-            type: string
-        - name: targetHost
-          in: query
-          description: The remote device hostname or IP address
-          required: true
-          schema:
-            type: string
-        - name: targetPort
-          in: query
-          description: The remote device SSH port
-          required: false
-          schema:
-            $ref: '#/components/schemas/tcpPort'
-      responses:
-        202:
-          description: Request accepted 
-          content:
-            application/json: {}
-        401:
-          description: Unauthorized
-        404:
-          description: No indentity file found
-          content:
-            application/json: {}
-        405:
-          description: Validation exception
-          content:
-            application/json:
-              schema:
-                type: string
-                example: 'invalid identity file'
         500:
           description: System exception
           content:
@@ -1279,7 +1163,7 @@ components:
        - name
       example:
         name: "id_rsa"
-        privateKey: "-----BEGIN RSA PRIVATE KEY-----\
+        privateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\
 MIIEpAIBAAKCAQEAvPgZD9jJL27HsNnMBcBYaPJ6cCnV4n0SFMCuUw4UBR3NX5Sv\
 a4vSFzvOYVw6qvMK4CqRaB0apQUHWlWfhQeieO9vWjDagnSUNo++iXc6gKsaMOcc\
 Baymv6x7qLT3c8TVJYqzy40SD5zuqe8RV/l3kdy7qJXIbHxqV4DL+soIk8D8/pmi\
@@ -1305,35 +1189,7 @@ tvXlai6h9OXSUREvsqTiZL2tlADfxUZSJCoaLTRCppbXE98NpBcQdnIi+f4yDraD\
 IYqowycCgYBrUivv2s2e9kDqvLt85OT86KPqHeTtcyls0IJB6JkcSXHhlVfu67+Z\
 GyjZ+1V2UZoiH2MjSS1U0MC3teXlHQnM+EzzyQ/tuOrcgfN13+jVf539Psv2kvkg\
 XkvQj53bHArIzZCSojeGcH4Z+yw4eYwh8KGgIZ7YRW/lZ3FBrF11Nw==\
------END RSA PRIVATE KEY-----"
-    PublishSshPublicKey:
-      type: object
-      required:
-        - targetHost
-        - targetUsername
-        - targetPassphrase
-        - sshKeyName
-      properties:
-        targetHost:
-          description: The remote device hostname or IP address
-          type: string
-        targetPort:
-          $ref: '#/components/schemas/tcpPort'
-        targetUsername:
-          description: The remote device SSH username
-          type: string
-        targetPassphrase:
-          description: The remote device SSH password
-          type: string
-        sshKeyName:
-          description: The SSH identity file name on the gateway
-          type: string
-      example:
-        targetHost: 192.168.245.1
-        targetPort: 22
-        targetUsername: root
-        targetPassphrase: default
-        sskKeyName: id_rsa
+-----END OPENSSH PRIVATE KEY-----"
     SampleRequestBody:
       type: object
       additionalProperties: true
