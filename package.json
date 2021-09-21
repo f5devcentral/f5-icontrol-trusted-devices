@@ -25,7 +25,7 @@
     "oas3-tools": "^1.0.1",
     "passport": "^0.4.1",
     "serve-static": "^1.14.1",
-    "ssh2": "^0.8.9",
+    "ssh2": "^1.4.0",
     "swagger-ui-dist": "^3.40.0"
   }
 }
