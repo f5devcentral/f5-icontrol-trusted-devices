@@ -18,6 +18,8 @@ const deviceInfoPath = '/mgmt/shared/identified-devices/config/device-info';
 const usersPath = '/mgmt/shared/authz/users';
 const pingPath = '/mgmt/shared/echo';
 
+const KEY_PATH = '/sshkeys';
+
 const TARGET_HOST_TIMEOUT = 300000;
 let targetCache = {};
 
@@ -363,6 +365,9 @@ const _resolveTarget = (target) => {
         if (target.hasOwnProperty('targetSshKey')) {
             if (!target.hasOwnProperty('targetPort')) {
                 target.targetPort = DEFAULT_SSH_PORT;
+            }
+            if (!target.targetSshKey.startsWith('/')) {
+                target.targetSshKey = KEY_PATH + '/' + target.targetSshKey;
             }
             if (!target.hasOwnProperty('targetUsername')) {
                 target.targetUsername = DEFAULT_SSH_USERNAME;
