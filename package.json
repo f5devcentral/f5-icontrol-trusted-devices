@@ -18,7 +18,7 @@
     "colors": "^1.4.0",
     "connect": "^3.2.0",
     "express": "^4.17.1",
-    "express-jwt": "^6.0.0",
+    "express-jwt": "^8.2.0",
     "express-session": "^1.17.1",
     "js-yaml": "^3.14.1",
     "node-forge": "^0.10.0",
